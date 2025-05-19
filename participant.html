@@ -128,7 +128,7 @@ document.getElementById('submitBtn').onclick=()=>{
   const avail={};cells.forEach(td=>{avail[td.dataset.slot]=td.textContent;});
   data.participants.push({name,avail});
   localStorage.setItem('event_'+id,JSON.stringify(data));
-  alert('送信しました。ご協力ありがとうございます！');
+  alert('送信しました。ご協力ありがとうございました。日程は決まり次第ご連絡いたします。');
   location.reload();
 };
 
