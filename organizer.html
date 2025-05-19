@@ -24,6 +24,16 @@ th,td{border:1px solid #ccc;padding:4px;text-align:center}
 td.clickable{cursor:pointer}
 td.match{background:#81c784}
 tr.hl td:not(.match){background:#fff59d}
+  button.mv {
+  padding: 0 4px;
+  margin: 0 1px;
+  font-size: 11px;
+  cursor: pointer;
+}
+button.mv:hover {
+  background: #e0e0e0;
+}
+
 /* ★ 追加：ごみ箱ボタン */
 button.del{background:none;border:none;color:#f44336;font-weight:bold;font-size:14px;cursor:pointer;padding:0 4px}
 button.del:hover{color:#d32f2f}
@@ -201,6 +211,29 @@ if (data.slots && data.slots.length) {
     data.participants.forEach(p=>{
       const tr=document.createElement('tr');
       tr.dataset.name=p.name;
+      const nameCell = document.createElement('td');
+  nameCell.style.whiteSpace = 'nowrap';
+  nameCell.innerHTML =
+    `<button class="mv" data-d="-1">↑</button>
+     <button class="mv" data-d="1">↓</button>
+     <span style="margin-left:4px;cursor:pointer;">${p.name}</span>`;
+  // ↑↓クリックで移動
+  nameCell.querySelectorAll('.mv').forEach(btn => {
+    btn.onclick = e => {
+      const dir = +e.target.dataset.d;      // -1 or +1
+      const newPos = idx + dir;
+      if (newPos < 0 || newPos >= data.participants.length) return;
+      // 配列を入れ替え
+      const tmp = data.participants[idx];
+      data.participants[idx] = data.participants[newPos];
+      data.participants[newPos] = tmp;
+      // 保存（localStorage 版）
+      localStorage.setItem('event_' + eventId, JSON.stringify(data));
+      renderStatus();           // 再描画
+      renderResult();
+    };
+  });
+  tr.appendChild(nameCell);
       /* ★ name + delete btn */
       const nameCell=document.createElement('td');
       const delBtn=document.createElement('button');delBtn.textContent='🗑';delBtn.className='del';
