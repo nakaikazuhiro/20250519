@@ -56,6 +56,7 @@ button.del:hover{color:#d32f2f}
 
 <!-- Ⅱ 参加状況 -->
 <div id="status" class="section hidden">
+  <div id="infoBox" style="margin-bottom:12px;font-size:13px;line-height:1.6;"></div>
   <div style="display:flex;justify-content:space-between;align-items:center;">
     <h3 style="margin:0">参加状況</h3>
     <button id="refreshBtn" class="secondary">🔄 更新</button> <!-- ★追加 -->
@@ -109,6 +110,28 @@ document.getElementById('sendBtn').onclick=()=>{data.slots=[];Object.entries(dat
 
 /* ===== Ⅱ 参加状況 ===== */
 function renderStatus(){
+  /* ★ infoBox の内容を更新する ---------------- */
+  const info = document.getElementById('infoBox');
+  if (info) {
+    // 開催者URL = 今表示しているページ
+    const organizerUrl =
+      location.origin + location.pathname + '?event=' + eventId + '&tab=status';
+    // 参加者URL
+    const participantUrl =
+      location.origin +
+      location.pathname.replace('organizer.html', 'participant.html') +
+      '?event=' + eventId;
+
+    // 候補日程を "YYYY-MM-DD HH:MM" 形式でカンマ区切り表示
+    const slotsHtml = (data.slots && data.slots.length)
+      ? data.slots.map(s => `<code>${s}</code>`).join(', ')
+      : '（まだ候補がありません）';
+
+    info.innerHTML =
+      `<strong>開催者URL:</strong> <a href="${organizerUrl}" target="_blank">${organizerUrl}</a><br>` +
+      `<strong>参加者URL:</strong> <a href="${participantUrl}" target="_blank">${participantUrl}</a><br>` +
+      `<strong>候補日程:</strong> ${slotsHtml}`;
+  }
   const wrap=document.getElementById('listTab');wrap.innerHTML='';
   if(data.slots.length===0){wrap.textContent='候補がまだ設定されていません';return;}
   const grouped={};data.slots.forEach(s=>{const [d]=s.split(' ');(grouped[d]??=[]).push(s);});
