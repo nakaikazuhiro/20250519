@@ -74,6 +74,28 @@ button.del:hover{color:#d32f2f}
 const qs=new URLSearchParams(location.search);
 const eventId=qs.get('event');
 let data=JSON.parse(localStorage.getItem('event_'+eventId)||'null');
+  /* ▼▼▼ ここから追加 ▼▼▼ */
+// 1. localStorage に保存されている候補日程から dateList を復元
+const dateList = {};
+if (data && Array.isArray(data.slots)) {
+  data.slots.forEach(s => {
+    const [d, t] = s.split(' ');
+    (dateList[d] ??= new Set()).add(t);
+  });
+}
+
+// 2. もし候補が存在するなら最初の1日を表示
+const firstDate = Object.keys(dateList)[0];
+if (firstDate) {
+  renderDateBtns(firstDate);
+  renderGrid(firstDate);
+  // 共有URLも復元表示
+  const url = location.origin + location.pathname.replace('organizer.html', 'participant.html') + '?event=' + eventId;
+  const info = document.getElementById('shareInfo');
+  info.textContent = '参加者用 URL: ' + url;
+  info.classList.remove('hidden');
+}
+/* ▲▲▲ ここまで追加 ▲▲▲ */
 if(!eventId||!data){alert('イベントが存在しません');history.back();}
 if(!Array.isArray(data.matches)) data.matches=[];
 
