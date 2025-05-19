@@ -123,9 +123,32 @@ function renderStatus(){
       '?event=' + eventId;
 
     // 候補日程を "YYYY-MM-DD HH:MM" 形式でカンマ区切り表示
-    const slotsHtml = (data.slots && data.slots.length)
-      ? data.slots.map(s => `<code>${s}</code>`).join(', ')
-      : '（まだ候補がありません）';
+    // ※ここから ▼ 差し替え ▼
+let slotsHtml;
+if (data.slots && data.slots.length) {
+  // { "YYYY-MM-DD": ["HH:MM", ...] } へグルーピング
+  const grouped = {};
+  data.slots.forEach(s => {
+    const [d, t] = s.split(' ');
+    (grouped[d] ??= []).push(t);
+  });
+
+  // HTML テーブル化（年は落とし、日付昇順）
+  slotsHtml = '<table style="border-collapse:collapse;font-size:13px;">' +
+    Object.entries(grouped)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([d, arr]) => {
+        const mmdd = d.slice(5); // "YYYY-MM-DD" → "MM-DD"
+        const cells = arr.map(t => `<td style="border:1px solid #ccc;padding:2px 6px;">${t}</td>`).join('');
+        return `<tr><td style="border:1px solid #ccc;padding:2px 6px;font-weight:bold;">${mmdd}</td>${cells}</tr>`;
+      })
+      .join('') +
+    '</table>';
+} else {
+  slotsHtml = '（まだ候補がありません）';
+}
+// ▲ 差し替えここまで
+
 
     info.innerHTML =
       `<strong>開催者URL:</strong> <a href="${organizerUrl}" target="_blank">${organizerUrl}</a><br>` +
