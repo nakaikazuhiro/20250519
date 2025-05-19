@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>日程調整 - 新規作成</title>
+<style>
+body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:40px;background:#f5f5f5;text-align:center}
+h1{margin:0 0 20px}
+input,button{font-size:16px;padding:10px;border-radius:6px;border:1px solid #ccc}
+button{border:none;background:#1976d2;color:#fff;cursor:pointer;margin-left:10px}
+</style>
+</head>
+<body>
+<h1>新しい日程調整を作成</h1>
+
+<!-- ★ イベント名入力を追加 -->
+<input type="text" id="evtName" placeholder="イベント名を入力">
+<button id="createBtn">日程調整をする</button>
+
+<script>
+document.getElementById('createBtn').onclick = () => {
+  const name = document.getElementById('evtName').value.trim();
+  if(!name){ alert('イベント名を入力してください'); return; }
+
+  const id = 'e' + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+  /* 保存データに eventName を追加 */
+  localStorage.setItem('event_'+id, JSON.stringify({
+    id,
+    eventName: name,
+    slots: [],
+    participants: [],
+    matches: []
+  }));
+  location.href = `organizer.html?event=${id}&tab=setup`;
+};
+</script>
+</body>
+</html>
