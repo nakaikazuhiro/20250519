@@ -56,6 +56,10 @@ button.del:hover{color:#d32f2f}
 
 <!-- Ⅱ 参加状況 -->
 <div id="status" class="section hidden">
+  <div style="display:flex;justify-content:space-between;align-items:center;">
+    <h3 style="margin:0">参加状況</h3>
+    <button id="refreshBtn" class="secondary">🔄 更新</button> <!-- ★追加 -->
+  </div>
   <div id="listTab"></div>
   <button id="csvBtn" class="secondary">CSVダウンロード</button>
 </div>
@@ -165,6 +169,18 @@ function renderResult(){
   Object.keys(grouped).sort().forEach(slot=>{const h3=document.createElement('h3');h3.textContent=slot;div.appendChild(h3);const ul=document.createElement('ul');grouped[slot].forEach(n=>{const li=document.createElement('li');li.textContent=n;ul.appendChild(li);});div.appendChild(ul);});
 }
 
+// 🔄 更新ボタンの処理
+document.getElementById('refreshBtn').onclick = () => {
+  const snap = localStorage.getItem('event_' + eventId);
+  if (snap) {
+    data = JSON.parse(snap);
+    renderStatus();      // 参加状況を再描画
+    renderResult();      // 調整結果も再描画
+  } else {
+    alert('データが見つかりません。');
+  }
+};
+  
 /* ===== CSV ===== */
 document.getElementById('csvBtn').onclick=()=>{let csv='参加者,'+data.slots.join(',')+'\n';data.participants.forEach(p=>csv+=p.name+','+data.slots.map(s=>p.avail[s]||'').join(',')+'\n');csv+='合計点,'+data.slots.map(s=>data.participants.reduce((a,p)=>a+(p.avail[s]==='○'?1:0),0)).join(',')+'\n';const blob=new Blob([csv],{type:'text/csv'}),url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='schedule_'+eventId+'.csv';document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);};
 </script>
