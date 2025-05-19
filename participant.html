@@ -78,6 +78,31 @@ function loadEvent(){
   buildTable();
 }
 
+/* --- ★ドラッグ塗りつぶし（参加者） --- */
+const markSeq = ['', '○', '×'];          // ←順序に合わせて
+let dragMark = null;
+let partDragging = false;
+
+document.addEventListener('mousedown', e => {
+  if (!e.target.classList.contains('click')) return;
+  partDragging = true;
+  const td = e.target;
+  cycleMark(td);                         // まず 1 回切り替え
+  dragMark = td.textContent;             // これをドラッグ中は適用
+});
+document.addEventListener('mouseover', e => {
+  if (!partDragging) return;
+  if (!e.target.classList.contains('click')) return;
+  e.target.textContent = dragMark;
+});
+document.addEventListener('mouseup', () => { partDragging = false; });
+
+function cycleMark(td){
+  const idx = markSeq.indexOf(td.textContent);
+  td.textContent = markSeq[(idx + 1) % markSeq.length];
+}
+
+  
 /* ====== ★ スロットを日付別にグルーピングしてテーブル生成 ====== */
 function buildTable(){
   const wrap=document.getElementById('tblWrap');wrap.innerHTML='';
