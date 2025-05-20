@@ -29,6 +29,7 @@ tr.hl td:not(.match){background:#fff59d}
 button.del{background:none;border:none;color:#f44336;font-weight:bold;font-size:14px;cursor:pointer;padding:0 4px}
 button.del:hover{color:#d32f2f}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>  
 </head>
 <body>
 <h2 id="title"></h2>
@@ -165,32 +166,51 @@ if (data.slots && data.slots.length) {
     const tbl=document.createElement('table');
     const thRow=document.createElement('tr');thRow.appendChild(document.createElement('th')).textContent='参加者 / 時間';
     grouped[date].forEach(s=>{const th=document.createElement('th');th.textContent=s.split(' ')[1];thRow.appendChild(th);});tbl.appendChild(thRow);
-    data.participants.forEach(p=>{
-      const tr=document.createElement('tr');
-      tr.dataset.name=p.name;
-      
-      /* ★ name + delete btn */
-      const nameCell=document.createElement('td');
-      const delBtn=document.createElement('button');delBtn.textContent='🗑';delBtn.className='del';
-      delBtn.title='この参加者を削除';
-      delBtn.onclick=()=>deleteParticipant(p.name);
-      nameCell.append(p.name,' ',delBtn);
-      nameCell.style.cursor='pointer';
-      nameCell.onclick=()=>toggleHighlight(p.name);
-      tr.appendChild(nameCell);
-      grouped[date].forEach(s=>{
-        const td=document.createElement('td');
-        const mark=p.avail[s]||'';
-        td.textContent=mark;
-        if(mark==='○'){
-          td.classList.add('clickable');
-          if(isMatched(s,p.name)) td.classList.add('match');
-          td.onclick=()=>toggleMatch(s,p.name,td);
-        }
-        tr.appendChild(td);
-      });
-      tbl.appendChild(tr);
-    });
+    const tbody = document.createElement('tbody');
+tbody.id = 'participantRows_' + date;
+tbl.appendChild(tbody);
+
+data.participants.forEach(p => {
+  const tr = document.createElement('tr');
+  tr.dataset.name = p.name;
+
+  const nameCell = document.createElement('td');
+  const delBtn = document.createElement('button');
+  delBtn.textContent = '🗑';
+  delBtn.className = 'del';
+  delBtn.title = 'この参加者を削除';
+  delBtn.onclick = () => deleteParticipant(p.name);
+  nameCell.append(p.name, ' ', delBtn);
+  nameCell.style.cursor = 'pointer';
+  nameCell.onclick = () => toggleHighlight(p.name);
+  tr.appendChild(nameCell);
+
+  grouped[date].forEach(s => {
+    const td = document.createElement('td');
+    const mark = p.avail[s] || '';
+    td.textContent = mark;
+    if (mark === '○') {
+      td.classList.add('clickable');
+      if (isMatched(s, p.name)) td.classList.add('match');
+      td.onclick = () => toggleMatch(s, p.name, td);
+    }
+    tr.appendChild(td);
+  });
+
+  tbody.appendChild(tr);
+});
+
+Sortable.create(tbody, {
+  animation: 150,
+  onEnd: () => {
+    const rows = [...tbody.querySelectorAll('tr')];
+    const names = rows.map(r => r.dataset.name);
+    data.participants.sort((a, b) => names.indexOf(a.name) - names.indexOf(b.name));
+    localStorage.setItem('event_' + eventId, JSON.stringify(data));
+    renderResult();
+  }
+});
+
     const sumRow=document.createElement('tr');sumRow.appendChild(document.createElement('td')).textContent='合計点';
     grouped[date].forEach(s=>{const total=data.participants.reduce((a,p)=>a+(p.avail[s]==='○'?1:0),0);sumRow.appendChild(document.createElement('td')).textContent=total;});
     tbl.appendChild(sumRow);wrap.appendChild(tbl);
