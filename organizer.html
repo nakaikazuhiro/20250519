@@ -109,40 +109,6 @@ function renderDateBtns(active){dateBtnsDiv.innerHTML='';Object.keys(dateList).s
 function renderGrid(date){grid.innerHTML='';document.getElementById('timeTitle').textContent=date?`タイムスロット（${date}）`:'タイムスロット';times.forEach(t=>{const div=document.createElement('div');div.textContent=t;div.className='slot';if(dateList[date].has(t))div.classList.add('sel');div.onclick=()=>{if(dateList[date].has(t)){dateList[date].delete(t);div.classList.remove('sel');}else{dateList[date].add(t);div.classList.add('sel');}};grid.appendChild(div);});}
 document.getElementById('sendBtn').onclick=()=>{data.slots=[];Object.entries(dateList).forEach(([d,set])=>set.forEach(t=>data.slots.push(`${d} ${t}`)));data.slots.sort();localStorage.setItem('event_'+eventId,JSON.stringify(data));const url=location.origin+location.pathname.replace('organizer.html','participant.html')+'?event='+eventId;const info=document.getElementById('shareInfo');info.textContent='参加者用 URL: '+url;info.classList.remove('hidden');alert('候補日時を保存しました。参加者に URL を共有してください。');document.querySelector('.tabbtn[data-tab="status"]').click();};
 
-/* --- ★ドラッグ選択ロジック（開催者） --- */
-let dragMode = null;          // 'add' または 'del'
-let dragging = false;
-
-document.addEventListener('mousedown', e => {
-  if (!e.target.classList.contains('slot')) return;
-  dragging = true;
-  const div = e.target;
-  dragMode = div.classList.contains('sel') ? 'del' : 'add';
-  toggleSlot(div);
-});
-document.addEventListener('mouseover', e => {
-  if (!dragging) return;
-  if (!e.target.classList.contains('slot')) return;
-  toggleSlot(e.target, true);     // drag=true
-});
-document.addEventListener('mouseup', () => { dragging = false; });
-
-function toggleSlot(div, isDrag = false) {
-  const [dateLabel] = document.getElementById('timeTitle').textContent.match(/\d{4}-\d{2}-\d{2}/) || [];
-  if (!dateLabel) return;
-  const time = div.textContent;
-  const set = dateList[dateLabel];
-  const shouldAdd = (dragMode === 'add');
-
-  if (shouldAdd && !set.has(time)) {
-    set.add(time);
-    div.classList.add('sel');
-  }
-  if (!shouldAdd && set.has(time)) {
-    set.delete(time);
-    div.classList.remove('sel');
-  }
-}
   
   /* ===== Ⅱ 参加状況 ===== */
 function renderStatus(){
