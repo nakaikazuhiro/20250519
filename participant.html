@@ -29,13 +29,18 @@ th,td{border:1px solid #ccc;padding:4px;text-align:center}
   <div>
     <label>お名前：<input type="text" id="pName"></label>
   </div>
+  <div style="margin-top:8px;">
+  <label>備考（任意）：<br>
+    <textarea id="noteInput" rows="3" cols="40" placeholder="伝えたいことがあれば記入してください"></textarea>
+  </label>
+</div>
   <div id="tblWrap" style="margin-top:10px"></div>
   <button id="submitBtn" class="primary">回答を送信</button>
 </div>
 
 <script>
 /* ---------- 1) 共通設定 ---------- */
-const marks=['','○','×'];                               // （△ を挿入したい場合はここに追加）
+const marks=['〇', '△', '×'];                               // （選択を変更したい場合はここに追加）
 const qs=new URLSearchParams(location.search);
 let id = qs.get('event');                               // URL パラメータ
 let data=null;
@@ -108,9 +113,10 @@ function buildTable(){
       const tr=document.createElement('tr');
       tr.appendChild(document.createElement('td')).textContent=slot.split(' ')[1]; // 時刻部分のみ表示
 
-      // クリックで ○→×→空
+      // クリックで ○→△→×
       const td=document.createElement('td');
       td.className='click';
+      td.textContent = '〇';
       td.dataset.slot=slot;                          // 後で集計するため slot ID を保持
       td.onclick=()=>{td.textContent=marks[(marks.indexOf(td.textContent)+1)%marks.length];};
       tr.appendChild(td);
@@ -122,16 +128,28 @@ function buildTable(){
 }
 
 /* ---------- 4) 回答送信 ---------- */
-document.getElementById('submitBtn').onclick=()=>{
-  const name=document.getElementById('pName').value.trim();
-  if(!name){alert('名前を入力してください');return;}
-  const cells=[...document.querySelectorAll('td.click')];
-  const avail={};cells.forEach(td=>{avail[td.dataset.slot]=td.textContent;});
-  data.participants.push({name,avail});
-  localStorage.setItem('event_'+id,JSON.stringify(data));
+document.getElementById('submitBtn').onclick = () => {
+  const name = document.getElementById('pName').value.trim();
+  if (!name) {
+    alert('名前を入力してください');
+    return;
+  }
+
+  const note = document.getElementById('noteInput').value.trim();  // ← 備考の取得
+
+  const cells = [...document.querySelectorAll('td.click')];
+  const avail = {};
+  cells.forEach(td => {
+    avail[td.dataset.slot] = td.textContent;
+  });
+
+  data.participants.push({ name, avail, note });  // ← 備考も保存
+
+  localStorage.setItem('event_' + id, JSON.stringify(data));
   alert('送信しました。ご協力ありがとうございました。日程は決まり次第ご連絡いたします。');
   location.reload();
 };
+
 
 /* ---------- 5) 初期化 ---------- */
 if(id){
