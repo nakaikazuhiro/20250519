@@ -17,9 +17,7 @@ button{border:none;background:#1976d2;color:#fff;cursor:pointer;margin-left:10px
 <input type="text" id="evtName" placeholder="イベント名を入力">
 <button id="createBtn">日程調整をする</button>
 
-<script type="module">
- 
-  
+<script>  
 document.getElementById('createBtn').onclick = () => {
   const name = document.getElementById('evtName').value.trim();
   if(!name){ alert('イベント名を入力してください'); return; }
