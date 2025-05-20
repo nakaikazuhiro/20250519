@@ -40,7 +40,9 @@ button.del:hover{color:#d32f2f}
   <button class="tabbtn" data-tab="status">参加状況</button>
   <button class="tabbtn" data-tab="result">調整結果</button>
 </div>
-
+<!-- 説明文 -->
+<div id="tabDesc" style="margin:10px 0; font-size:13px; color:#333;"></div>
+  
 <!-- Ⅰ 候補設定 -->
 <div id="setup" class="section">
   <div>
@@ -89,6 +91,13 @@ document.querySelectorAll('.tabbtn').forEach(btn=>{
     document.querySelectorAll('.tabbtn').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
     const t=btn.dataset.tab;
+    // 説明文を表示
+　　　const desc = {
+  setup: "使い方：カレンダーから日付を選ぶ→日付を追加をクリック→時間帯をクリック→これを繰り返し、選択が終われば日程を送信",
+  status: "使い方：○をクリックすると【調整結果】タブに反映されます。参加者名をドラッグで順番の入れ、クリックでハイライトできます。",
+  result: "【参加状況】タブでの結果が一覧で表示されます。"
+};
+document.getElementById('tabDesc').innerText = desc[t] || '';
     ['setup','status','result'].forEach(id=>document.getElementById(id).classList.toggle('hidden',id!==t));
     if(t==='status') renderStatus();
     if(t==='result') renderResult();
