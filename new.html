@@ -18,20 +18,7 @@ button{border:none;background:#1976d2;color:#fff;cursor:pointer;margin-left:10px
 <button id="createBtn">日程調整をする</button>
 
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-  const firebaseConfig = {
-  apiKey: "AIzaSyAepFfy33SQTgSWjG2e6W2PSKp0sbSIk_E",
-  authDomain: "gap-schedule.firebaseapp.com",
-  projectId: "gap-schedule",
-  storageBucket: "gap-schedule.firebasestorage.app",
-  messagingSenderId: "610048232965",
-  appId: "1:610048232965:web:c0f61d55f56c1079f3d66c"
-};
-
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+ 
   
 document.getElementById('createBtn').onclick = () => {
   const name = document.getElementById('evtName').value.trim();
