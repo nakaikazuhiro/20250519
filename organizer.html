@@ -29,7 +29,7 @@ button.del{background:none;border:none;color:#f44336;font-weight:bold;font-size:
 button.del:hover{color:#d32f2f}
 </style>
 
-<!-- ▼ GAS との通信ヘルパー（3 行だけ直す） -->
+<!-- ▼ GAS との通信ヘルパー -->
 <script>
   const ENDPOINT = 'https://script.google.com/macros/s/AKfycbxFvnUFdjhqrsLWccf5LMXILSX6BiaLJopmX5WSqpqfAwGvJ8qQaWz_0XTak5cLP0XW/exec';   // ★ ここを書き換える
 
@@ -53,9 +53,9 @@ button.del:hover{color:#d32f2f}
 
 <!-- 上位タブ -->
 <div class="section">
-  <button class="tabbtn active" data-tab="setup">候補設定</button>
-  <button class="tabbtn" data-tab="status">参加状況</button>
+  <button class="tabbtn active" data-tab="status">参加状況</button>
   <button class="tabbtn" data-tab="result">調整結果</button>
+  <button class="tabbtn" data-tab="setup">日程の追加</button>
 </div>
 <div id="tabDesc" style="margin:10px 0;font-size:13px;color:#333;"></div>
 
