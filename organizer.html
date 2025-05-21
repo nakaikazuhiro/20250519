@@ -234,10 +234,17 @@ function renderStatus(){
       nameCell.append(p.name,' ',del);nameCell.onclick=()=>toggleHighlight(p.name);tr.appendChild(nameCell);
       /* 可否セル */
       grouped[date].forEach(s=>{
-        const td=document.createElement('td');td.textContent=p.avail?safeMark(p.avail[s]):'';
-        tr.appendChild(td);
-      });
-      tbody.appendChild(tr);
+        const td = document.createElement('td');
+const mark = p.avail ? p.avail[s] : '';
+td.textContent = mark;
+
+/* ○ と △ をクリック可能に */
+if (mark === '〇' || mark === '△') {
+  td.classList.add('clickable');
+  if (isMatched(s, p.name)) td.classList.add('match');
+  td.onclick = () => toggleMatch(s, p.name, td);
+}
+tr.appendChild(td);
     });
 
     /* 合計行 */
@@ -269,22 +276,47 @@ function deleteParticipant(name){
   // ★ここではサーバー削除API未実装のためフロントのみ
   renderStatus();renderResult();
 }
+/* ===== マッチ操作 ===== */
+function isMatched(slot, name){
+  return data.matches.some(m => m.slot === slot && m.name === name);
+}
+function toggleMatch(slot, name, cell){
+  if (isMatched(slot, name)){
+    data.matches = data.matches.filter(m => !(m.slot===slot && m.name===name));
+    cell.classList.remove('match');
+  }else{
+    data.matches.push({slot, name});
+    cell.classList.add('match');
+  }
+  renderResult();                  // ← 毎回結果を再描画
+}
 
 /* === 調整結果（単純リスト） === */
+/* ===== 調整結果タブ ===== */
 function renderResult(){
-  const div=document.getElementById('matchWrap');div.innerHTML='';
-  if(data.participants.length===0){div.textContent='まだ回答がありません';return;}
-  const tally={};
-  data.participants.forEach(p=>{
-    if(!p.avail) return;
-    Object.entries(p.avail).forEach(([slot,mark])=>{
-      if(mark==='○')(tally[slot]=tally[slot]||[]).push(p.name);
+  const div = document.getElementById('matchWrap');
+  div.innerHTML = '';
+
+  if (data.matches.length === 0){
+    div.textContent = 'まだマッチが選択されていません。「参加状況」タブで ○ または △ セルをクリックしてください。';
+    return;
+  }
+
+  /* {slot:[name,…]} にまとめて表示 */
+  const grouped = {};
+  data.matches.forEach(m => (grouped[m.slot] ??= []).push(m.name));
+
+  Object.keys(grouped).sort().forEach(slot=>{
+    const h3 = document.createElement('h3');
+    h3.textContent = slot;
+    div.appendChild(h3);
+
+    const ul = document.createElement('ul');
+    grouped[slot].forEach(n=>{
+      const li = document.createElement('li');
+      li.textContent = n;
+      ul.appendChild(li);
     });
-  });
-  Object.keys(tally).sort().forEach(slot=>{
-    const h3=document.createElement('h3');h3.textContent=slot;div.appendChild(h3);
-    const ul=document.createElement('ul');
-    tally[slot].forEach(n=>{const li=document.createElement('li');li.textContent=n;ul.appendChild(li);});
     div.appendChild(ul);
   });
 }
