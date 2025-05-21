@@ -126,7 +126,7 @@ function initTabs(){
         result: '選択済みマッチが一覧表示されます'
       };
       document.getElementById('tabDesc').innerText = desc[t]||'';
-      ['setup','status','result'].forEach(id=>{
+      ['result','status','setup'].forEach(id=>{
         document.getElementById(id).classList.toggle('hidden',id!==t);
       });
       if(t==='status') renderStatus();
