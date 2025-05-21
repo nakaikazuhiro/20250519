@@ -15,148 +15,124 @@ table{border-collapse:collapse;width:100%;font-size:12px;margin-bottom:12px}
 th,td{border:1px solid #ccc;padding:4px;text-align:center}
 .hidden{display:none}
 </style>
+
+<!-- ★ GAS 通信ヘルパー -->
+<script>
+  const ENDPOINT = 'YOUR_GAS_URL_HERE';         // ← ここを書き換え
+
+  async function apiPost(body){                 // POST（ヘッダーなし = text/plain）
+    const r = await fetch(ENDPOINT,{ method:'POST', body:JSON.stringify(body) });
+    return r.json();
+  }
+  async function apiGet(query){                 // GET
+    const r = await fetch(`${ENDPOINT}?${query}`);
+    return r.json();
+  }
+</script>
 </head>
+
 <body>
-<!-- ★イベント名 -->
 <h2 id="title">参加可否の入力</h2>
 
-<!-- ===== イベント選択 UI ===== -->
-<div id="selectorWrap"></div>
+<!-- イベントID入力（パラメータが無いとき） -->
+<div id="selectorWrap">
+  <label>イベントID: <input type="text" id="eventInput"></label>
+  <button id="loadBtn" class="primary">イベントを読み込み</button>
+</div>
 
-<!-- ===== 参加入力 UI ===== -->
+<!-- 参加入力UI -->
 <div id="mainWrap" class="hidden">
   <p id="info"></p>
-  <div>
-    <label>お名前：<input type="text" id="pName"></label>
-  </div>
+  <div><label>お名前：<input type="text" id="pName"></label></div>
   <div style="margin-top:8px;">
-  <label>備考（任意）：<br>
-    <textarea id="noteInput" rows="3" cols="40" placeholder="伝えたいことがあれば記入してください"></textarea>
-  </label>
-</div>
+    <label>備考（任意）：<br>
+      <textarea id="noteInput" rows="3" cols="40" placeholder="伝えたいことがあれば記入してください"></textarea>
+    </label>
+  </div>
   <div id="tblWrap" style="margin-top:10px"></div>
   <button id="submitBtn" class="primary">回答を送信</button>
 </div>
 
 <script>
-/* ---------- 1) 共通設定 ---------- */
-const marks=['〇', '△', '×'];                               // （選択を変更したい場合はここに追加）
-const qs=new URLSearchParams(location.search);
-let id = qs.get('event');                               // URL パラメータ
-let data=null;
+/* ===== 共通 ===== */
+const marks = ['〇','△','×'];
+const qs    = new URLSearchParams(location.search);
+let eventId = qs.get('event') || '';
 
-/* ---------- 2) イベント選択 ---------- */
-const selectorDiv=document.getElementById('selectorWrap');
-function buildSelector(){
-  const keys=Object.keys(localStorage).filter(k=>k.startsWith('event_'));
-  if(keys.length===0){
-    selectorDiv.innerHTML='<p>ローカルストレージにイベントがありません。先に開催者画面で作成してください。</p>';
-    return;
-  }
-  const select=document.createElement('select');
-  keys.forEach(k=>{
-    const ev=JSON.parse(localStorage.getItem(k));
-    const opt=document.createElement('option');
-    opt.value=ev.id;
-    opt.textContent=`${ev.id}（候補数:${ev.slots.length}）`;
-    select.appendChild(opt);
-  });
-  const btn=document.createElement('button');
-  btn.textContent='参加を開始';
-  btn.className='primary';
-  btn.onclick=()=>{ id=select.value; loadEvent(); };
-  selectorDiv.appendChild(select);
-  selectorDiv.appendChild(btn);
-}
+/* ===== 1. イベントを読み込む ===== */
+document.getElementById('loadBtn').onclick = async ()=>{
+  eventId = document.getElementById('eventInput').value.trim();
+  if(!eventId){ alert('イベントIDを入力'); return; }
+  await loadEvent();
+};
 
-/* ---------- 3) メイン入力 ---------- */
-function loadEvent(){
-  data=JSON.parse(localStorage.getItem('event_'+id)||'null');
-  if(!data){alert('イベントが存在しません');return;}
+async function loadEvent(){
+  const ev = await apiGet('eventId='+eventId);
+  if(ev.status==='not found'){ alert('イベントが存在しません'); return; }
 
-/* ★ タイトルにイベント名を反映 */
-  document.getElementById('title').textContent = `「${data.eventName}」への参加入力`;
-
-  selectorDiv.classList.add('hidden');
+  /* タイトル・基本情報 */
+  document.getElementById('title').textContent = `「${ev.title}」への参加入力`;
+  document.getElementById('info').textContent  = `イベントID: ${eventId}`;
+  document.getElementById('selectorWrap').classList.add('hidden');
   document.getElementById('mainWrap').classList.remove('hidden');
-  document.getElementById('info').textContent='イベントID: '+id;
-  buildTable();
+
+  buildTable(ev.dates||[]);
 }
 
+/* ===== 2. テーブル生成 ===== */
+function buildTable(slots){
+  const wrap = document.getElementById('tblWrap'); wrap.innerHTML='';
+  if(slots.length===0){ wrap.textContent='候補日時が設定されていません'; return; }
 
-/* ====== ★ スロットを日付別にグルーピングしてテーブル生成 ====== */
-function buildTable(){
-  const wrap=document.getElementById('tblWrap');wrap.innerHTML='';
-  if(data.slots.length===0){wrap.textContent='候補日時がまだ設定されていません';return;}
-
-  // { "YYYY-MM-DD": [ "YYYY-MM-DD HH:MM", ... ] }
+  /* YYYY-MM-DD ごとにグループ化 */
   const grouped={};
-  data.slots.forEach(s=>{
+  slots.forEach(s=>{
     const [d]=s.split(' ');
     (grouped[d]??=[]).push(s);
   });
 
   Object.keys(grouped).sort().forEach(date=>{
-    // 見出し
-    const h3=document.createElement('h3');
-    h3.textContent=date;
-    wrap.appendChild(h3);
-
-    // テーブル
+    wrap.insertAdjacentHTML('beforeend', `<h3>${date}</h3>`);
     const tbl=document.createElement('table');
-    const trHead=document.createElement('tr');
-    trHead.innerHTML='<th>時間</th><th>可否</th>';
-    tbl.appendChild(trHead);
-
-    // 各スロット行
+    tbl.innerHTML='<tr><th>時間</th><th>可否</th></tr>';
     grouped[date].forEach(slot=>{
       const tr=document.createElement('tr');
-      tr.appendChild(document.createElement('td')).textContent=slot.split(' ')[1]; // 時刻部分のみ表示
-
-      // クリックで ○→△→×
+      tr.insertAdjacentHTML('beforeend', `<td>${slot.split(' ')[1]}</td>`);
       const td=document.createElement('td');
-      td.className='click';
-      td.textContent = '〇';
-      td.dataset.slot=slot;                          // 後で集計するため slot ID を保持
-      td.onclick=()=>{td.textContent=marks[(marks.indexOf(td.textContent)+1)%marks.length];};
-      tr.appendChild(td);
-
-      tbl.appendChild(tr);
+      td.className='click'; td.dataset.slot=slot; td.textContent='〇';
+      td.onclick=()=>{ td.textContent = marks[(marks.indexOf(td.textContent)+1)%marks.length]; };
+      tr.appendChild(td); tbl.appendChild(tr);
     });
     wrap.appendChild(tbl);
   });
 }
 
-/* ---------- 4) 回答送信 ---------- */
-document.getElementById('submitBtn').onclick = () => {
+/* ===== 3. 送信 ===== */
+document.getElementById('submitBtn').onclick = async ()=>{
   const name = document.getElementById('pName').value.trim();
-  if (!name) {
-    alert('名前を入力してください');
-    return;
-  }
+  if(!name){ alert('名前を入力'); return; }
 
-  const note = document.getElementById('noteInput').value.trim();  // ← 備考の取得
-
-  const cells = [...document.querySelectorAll('td.click')];
-  const avail = {};
-  cells.forEach(td => {
-    avail[td.dataset.slot] = td.textContent;
+  const note = document.getElementById('noteInput').value.trim();
+  const avail={};
+  document.querySelectorAll('td.click').forEach(td=>{
+    avail[td.dataset.slot]=td.textContent;
   });
 
-  data.participants.push({ name, avail, note });  // ← 備考も保存
-
-  localStorage.setItem('event_' + id, JSON.stringify(data));
-  alert('送信しました。ご協力ありがとうございました。日程は決まり次第ご連絡いたします。');
-  location.reload();
+  const res = await apiPost({
+    mode   : 'answer',
+    eventId: eventId,
+    name   : name,
+    choices: avail,
+    note   : note
+  });
+  if(res.status==='success'){
+    alert('送信しました。ご協力ありがとうございました！');
+    location.reload();
+  }else alert('送信に失敗しました');
 };
 
-
-/* ---------- 5) 初期化 ---------- */
-if(id){
-  loadEvent();          // URL パラメータがあれば即ロード
-}else{
-  buildSelector();      // なければセレクタ表示
-}
+/* ===== 4. URLパラメータがあればすぐロード ===== */
+if(eventId) loadEvent();
 </script>
 </body>
 </html>
