@@ -5,7 +5,7 @@
 <title>開催者画面</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
-/* ===== 既存デザインそのまま ===== */
+/* ─── 共通スタイル ─── */
 body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:20px;background:#fafafa}
 h2{margin:0 0 10px}
 h3{margin:16px 0 6px}
@@ -29,21 +29,18 @@ button.del{background:none;border:none;color:#f44336;font-weight:bold;font-size:
 button.del:hover{color:#d32f2f}
 </style>
 
-<!-- ▼ GAS との通信ヘルパー -->
+<!-- ─── GAS 通信ヘルパー ─── -->
 <script>
-  const ENDPOINT = 'https://script.google.com/macros/s/AKfycbxFvnUFdjhqrsLWccf5LMXILSX6BiaLJopmX5WSqpqfAwGvJ8qQaWz_0XTak5cLP0XW/exec';   // ★ ここを書き換える
+const ENDPOINT = 'YOUR_GAS_URL_HERE';   /* ←★GAS ウェブアプリ URL に変更 */
 
-  async function apiPost(body){
-    const r = await fetch(ENDPOINT,{
-      method:'POST',
-      body:JSON.stringify(body)
-    });
-    return r.json();
-  }
-  async function apiGet(q){               // 例 'eventId=xxx&summary=1'
-    const r = await fetch(`${ENDPOINT}?${q}`);
-    return r.json();
-  }
+async function apiPost(body){
+  const r = await fetch(ENDPOINT,{method:'POST',body:JSON.stringify(body)});
+  return r.json();
+}
+async function apiGet(q){               // 例 'eventId=xxx&summary=1'
+  const r = await fetch(`${ENDPOINT}?${q}`);
+  return r.json();
+}
 </script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 </head>
@@ -51,16 +48,16 @@ button.del:hover{color:#d32f2f}
 <body>
 <h2 id="title"></h2>
 
-<!-- 上位タブ -->
+<!-- ─── タブ ─── -->
 <div class="section">
   <button class="tabbtn active" data-tab="status">参加状況</button>
   <button class="tabbtn" data-tab="result">調整結果</button>
   <button class="tabbtn" data-tab="setup">日程の追加</button>
 </div>
-<div id="tabDesc" style="margin:10px 0;font-size:13px;color:#333;"></div>
+<p id="tabDesc" style="margin:10px 0;font-size:13px;color:#333;"></p>
 
 <!-- Ⅰ 参加状況 -->
-<div id="status" class="section hidden">
+<div id="status" class="section">
   <div id="infoBox" style="margin-bottom:12px;font-size:13px;line-height:1.6;"></div>
   <div style="display:flex;justify-content:space-between;align-items:center;">
     <h3 style="margin:0">参加状況</h3>
@@ -70,12 +67,10 @@ button.del:hover{color:#d32f2f}
 </div>
 
 <!-- Ⅱ 調整結果 -->
-<div id="result" class="section hidden">
-  <div id="matchWrap"></div>
-</div>
-  
+<div id="result" class="section hidden"><div id="matchWrap"></div></div>
+
 <!-- Ⅲ 日程追加 -->
-<div id="setup" class="section">
+<div id="setup" class="section hidden">
   <div>
     <label>日付を選択：<input type="date" id="datePick"></label>
     <button class="secondary" id="addDateBtn">日付を追加</button>
@@ -90,30 +85,26 @@ button.del:hover{color:#d32f2f}
 </div>
 
 <script>
-/* === 初期データ取得 === */
-const qs  = new URLSearchParams(location.search);
+/* ---------- 初期読込 ---------- */
+const qs      = new URLSearchParams(location.search);
 const eventId = qs.get('event');
 if(!eventId){ alert('event パラメータがありません'); history.back(); }
 
-/* エベント情報 + 空参加者リスト */
 let data = { title:'', slots:[], participants:[], matches:[] };
 
-(async()=>{
-  /* 1) イベント基本情報 */
+(async ()=>{
   const ev = await apiGet('eventId='+eventId);
   if(ev.status==='not found'){ alert('イベントが存在しません'); history.back(); }
   data.title = ev.title;
   data.slots = ev.dates || [];
 
-  /* 2) 参加者情報＋集計（summary=1 で participants も返す前提） */
-  await refreshSummary();
-
+  await refreshSummary();                          // participants 取得
   document.getElementById('title').textContent = '開催者画面 – '+data.title;
-  initTabs();                      // UI 起動
-  renderDateBtns();                // 既存スロットを反映
+  initTabs();
+  renderDateBtns();
 })();
 
-/* === タブ切り替え === */
+/* ---------- タブ切替 ---------- */
 function initTabs(){
   document.querySelectorAll('.tabbtn').forEach(btn=>{
     btn.onclick = ()=>{
@@ -121,12 +112,12 @@ function initTabs(){
       btn.classList.add('active');
       const t = btn.dataset.tab;
       const desc = {
-        setup : 'カレンダーから日付を追加 → 時間帯クリック → 送信',
-        status: '○セルをクリックでマッチ選択。行をドラッグで順番変更',
-        result: '選択済みマッチが一覧表示されます'
+        setup :'候補日を追加 → 時間帯クリック → 送信',
+        status:'○/△ をクリックでマッチ選択。行ドラッグで順番変更',
+        result:'選択されたマッチの一覧'
       };
       document.getElementById('tabDesc').innerText = desc[t]||'';
-      ['result','status','setup'].forEach(id=>{
+      ['status','result','setup'].forEach(id=>{
         document.getElementById(id).classList.toggle('hidden',id!==t);
       });
       if(t==='status') renderStatus();
@@ -136,9 +127,11 @@ function initTabs(){
   if(qs.get('tab')) document.querySelector(`[data-tab="${qs.get('tab')}"]`).click();
 }
 
-/* === 候補設定 === */
+/* ========== 日程追加（setup）========== */
 const times = (()=>{const a=[];for(let h=8;h<=19;h++){['00','30'].forEach(m=>{if(!(h===19&&m==='30'))a.push(`${String(h).padStart(2,'0')}:${m}`);});}return a;})();
-const dateList = Object.fromEntries(data.slots.map(s=>{const [d,t]=s.split(' ');return [d,0];})); // 既存日付だけ鍵を用意
+const dateList = Object.fromEntries(data.slots.map(s=>[s.split(' ')[0],new Set()]));
+data.slots.forEach(s=>dateList[s.split(' ')[0]].add(s.split(' ')[1]));
+
 const dateBtnsDiv = document.getElementById('dateBtns');
 const grid        = document.getElementById('timeGrid');
 
@@ -153,104 +146,95 @@ document.getElementById('addDateBtn').onclick = ()=>{
 function renderDateBtns(active){
   dateBtnsDiv.innerHTML='';
   Object.keys(dateList).sort().forEach(d=>{
-    const b = document.createElement('button');
-    b.textContent = d; b.className='secondary';
+    const b=document.createElement('button');
+    b.textContent=d; b.className='secondary';
     if(d===active) b.style.fontWeight='bold';
-    b.onclick = ()=>renderGrid(d);
+    b.onclick=()=>renderGrid(d);
     dateBtnsDiv.appendChild(b);
   });
 }
 function renderGrid(date){
   grid.innerHTML='';
-  document.getElementById('timeTitle').textContent = date?`タイムスロット（${date}）`:'タイムスロット';
+  document.getElementById('timeTitle').textContent=date?`タイムスロット（${date}）`:'タイムスロット';
   times.forEach(t=>{
-    const div = document.createElement('div');
-    div.textContent=t; div.className='slot';
-    if(dateList[date] && dateList[date].has(t)) div.classList.add('sel');
-    div.onclick = ()=>{
-      dateList[date] ??= new Set();
-      if(dateList[date].has(t)){ dateList[date].delete(t); div.classList.remove('sel'); }
-      else                    { dateList[date].add(t);    div.classList.add('sel');    }
+    const div=document.createElement('div'); div.textContent=t; div.className='slot';
+    if(dateList[date]?.has(t)) div.classList.add('sel');
+    div.onclick=()=>{
+      if(!date) return;
+      const set=dateList[date]; set.has(t)?set.delete(t):set.add(t);
+      div.classList.toggle('sel');
     };
     grid.appendChild(div);
   });
 }
 document.getElementById('sendBtn').onclick = async ()=>{
-  /* スロット配列を生成 */
-  data.slots = [];
-  Object.entries(dateList).forEach(([d,set])=>{
-    if(set instanceof Set) set.forEach(t=>data.slots.push(`${d} ${t}`));
-  });
+  data.slots=[];
+  Object.entries(dateList).forEach(([d,set])=>set.forEach(t=>data.slots.push(`${d} ${t}`)));
   data.slots.sort();
 
-  /* GAS へ保存 */
   const res = await apiPost({mode:'updateSlots',eventId,slots:data.slots});
   if(res.status==='success'){
-    /* 共有 URL 表示 */
     const url = location.origin+location.pathname.replace('organizer.html','participant.html')+'?event='+eventId;
-    const info = document.getElementById('shareInfo');
-    info.textContent = '参加者用 URL: '+url;
-    info.classList.remove('hidden');
-    alert('候補日時を保存しました。参加者に URL を共有してください。');
-    document.querySelector('.tabbtn[data-tab="status"]').click();
+    document.getElementById('shareInfo').textContent='参加者用 URL: '+url;
+    document.getElementById('shareInfo').classList.remove('hidden');
+    alert('候補を保存しました。');
+    document.querySelector('[data-tab="status"]').click();
   }else alert('保存に失敗しました');
 };
 
-/* === 参加状況 === */
+/* ========== 参加状況（status）========== */
 document.getElementById('refreshBtn').onclick = refreshSummary;
 
 async function refreshSummary(){
   const r = await apiGet(`eventId=${eventId}&summary=1`);
-  if(r.tally){ data.participants = r.participants||[]; } // tally だけでも良いが一覧用に participants も
+  if(r.participants) data.participants = r.participants;
 }
+
 function renderStatus(){
-  /* infoBox */
   const orgUrl = location.origin+location.pathname+'?event='+eventId+'&tab=status';
   const parUrl = location.origin+location.pathname.replace('organizer.html','participant.html')+'?event='+eventId;
   document.getElementById('infoBox').innerHTML =
     `<strong>開催者URL:</strong> <a href="${orgUrl}" target="_blank">${orgUrl}</a><br>`+
     `<strong>参加者URL:</strong> <a href="${parUrl}" target="_blank">${parUrl}</a>`;
 
-  /* スロット表 */
-  const wrap=document.getElementById('listTab');wrap.innerHTML='';
-  if(data.slots.length===0){wrap.textContent='候補がまだ設定されていません';return;}
+  const wrap=document.getElementById('listTab'); wrap.innerHTML='';
+  if(data.slots.length===0){ wrap.textContent='候補がありません'; return; }
 
-  const grouped={};data.slots.forEach(s=>{const [d]=s.split(' ');(grouped[d]??=[]).push(s);});
+  const grouped={}; data.slots.forEach(s=>{const d=s.split(' ')[0]; (grouped[d]??=[]).push(s);});
+
   Object.keys(grouped).sort().forEach(date=>{
-    const h3=document.createElement('h3');h3.textContent=date;wrap.appendChild(h3);
+    wrap.insertAdjacentHTML('beforeend',`<h3>${date}</h3>`);
     const tbl=document.createElement('table');
-    const thRow=document.createElement('tr');
-    thRow.innerHTML='<th>参加者 / 時間</th>'+grouped[date].map(s=>`<th>${s.split(' ')[1]}</th>`).join('');
-    tbl.appendChild(thRow);
-
-    /* tbody */
-    const tbody=document.createElement('tbody');tbl.appendChild(tbody);
+    tbl.innerHTML='<tr><th>参加者 / 時間</th>'+grouped[date].map(s=>`<th>${s.split(' ')[1]}</th>`).join('')+'</tr>';
+    const tbody=document.createElement('tbody'); tbl.appendChild(tbody);
 
     data.participants.forEach(p=>{
-      const tr=document.createElement('tr');tr.dataset.name=p.name;
-      /* 名前セル＋削除ボタン */
-      const nameCell=document.createElement('td');nameCell.style.cursor='pointer';
-      const del=document.createElement('button');del.textContent='🗑';del.className='del';del.onclick=()=>deleteParticipant(p.name);
-      nameCell.append(p.name,' ',del);nameCell.onclick=()=>toggleHighlight(p.name);tr.appendChild(nameCell);
-      /* 可否セル */
-      grouped[date].forEach(s=>{
-        const td = document.createElement('td');
-const mark = p.avail ? p.avail[s] : '';
-td.textContent = mark;
+      const tr=document.createElement('tr'); tr.dataset.name=p.name;
+      /* 名前セル＋削除 */
+      const nameTd=document.createElement('td');
+      const del=document.createElement('button'); del.textContent='🗑'; del.className='del';
+      del.onclick=()=>deleteParticipant(p.name);
+      nameTd.append(p.name,' ',del); nameTd.onclick=()=>toggleHighlight(p.name);
+      tr.appendChild(nameTd);
 
-/* ○ と △ をクリック可能に */
-if (mark === '〇' || mark === '△') {
-  td.classList.add('clickable');
-  if (isMatched(s, p.name)) td.classList.add('match');
-  td.onclick = () => toggleMatch(s, p.name, td);
-}
-tr.appendChild(td);
+      grouped[date].forEach(slot=>{
+        const td=document.createElement('td');
+        const mark=p.avail? p.avail[slot]||'' : '';
+        td.textContent=mark;
+        if(mark==='〇'||mark==='△'){
+          td.classList.add('clickable');
+          if(isMatched(slot,p.name)) td.classList.add('match');
+          td.onclick=()=>toggleMatch(slot,p.name,td);
+        }
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
     });
 
     /* 合計行 */
     const sum=document.createElement('tr');
-    sum.innerHTML='<td>合計点</td>'+grouped[date].map(s=>{
-      const tot=data.participants.reduce((a,p)=>a+(p.avail&&p.avail[s]==='○'?1:0),0);
+    sum.innerHTML='<td>合計点</td>'+grouped[date].map(slot=>{
+      const tot=data.participants.reduce((a,p)=>a+(p.avail&&p.avail[slot]==='〇'?1:0),0);
       return `<td>${tot}</td>`;
     }).join('');
     tbl.appendChild(sum);
@@ -266,57 +250,43 @@ tr.appendChild(td);
     });
   });
 }
-function safeMark(m){return m||'';}
+
 function toggleHighlight(name){
   document.querySelectorAll(`tr[data-name="${name}"]`).forEach(r=>r.classList.toggle('hl'));
 }
 function deleteParticipant(name){
-  if(!confirm(name+' さんの回答を削除しますか？')) return;
+  if(!confirm(`${name} さんの回答を削除しますか？`)) return;
   data.participants=data.participants.filter(p=>p.name!==name);
-  // ★ここではサーバー削除API未実装のためフロントのみ
-  renderStatus();renderResult();
+  renderStatus(); renderResult();
 }
+
 /* ===== マッチ操作 ===== */
-function isMatched(slot, name){
-  return data.matches.some(m => m.slot === slot && m.name === name);
+function isMatched(slot,name){
+  return data.matches.some(m=>m.slot===slot&&m.name===name);
 }
-function toggleMatch(slot, name, cell){
-  if (isMatched(slot, name)){
-    data.matches = data.matches.filter(m => !(m.slot===slot && m.name===name));
+function toggleMatch(slot,name,cell){
+  if(isMatched(slot,name)){
+    data.matches=data.matches.filter(m=>!(m.slot===slot&&m.name===name));
     cell.classList.remove('match');
   }else{
-    data.matches.push({slot, name});
+    data.matches.push({slot,name});
     cell.classList.add('match');
   }
-  renderResult();                  // ← 毎回結果を再描画
+  renderResult();
 }
 
-/* === 調整結果（単純リスト） === */
-/* ===== 調整結果タブ ===== */
+/* ========== 調整結果タブ ========== */
 function renderResult(){
-  const div = document.getElementById('matchWrap');
-  div.innerHTML = '';
-
-  if (data.matches.length === 0){
-    div.textContent = 'まだマッチが選択されていません。「参加状況」タブで ○ または △ セルをクリックしてください。';
+  const div=document.getElementById('matchWrap'); div.innerHTML='';
+  if(data.matches.length===0){
+    div.textContent='まだマッチが選択されていません（参加状況タブで ○ / △ をクリック）';
     return;
   }
-
-  /* {slot:[name,…]} にまとめて表示 */
-  const grouped = {};
-  data.matches.forEach(m => (grouped[m.slot] ??= []).push(m.name));
-
+  const grouped={}; data.matches.forEach(m=>(grouped[m.slot]??=[]).push(m.name));
   Object.keys(grouped).sort().forEach(slot=>{
-    const h3 = document.createElement('h3');
-    h3.textContent = slot;
-    div.appendChild(h3);
-
-    const ul = document.createElement('ul');
-    grouped[slot].forEach(n=>{
-      const li = document.createElement('li');
-      li.textContent = n;
-      ul.appendChild(li);
-    });
+    const h3=document.createElement('h3'); h3.textContent=slot; div.appendChild(h3);
+    const ul=document.createElement('ul');
+    grouped[slot].forEach(n=>ul.insertAdjacentHTML('beforeend',`<li>${n}</li>`));
     div.appendChild(ul);
   });
 }
