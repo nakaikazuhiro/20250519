@@ -3,35 +3,65 @@
 <head>
 <meta charset="UTF-8">
 <title>日程調整 - 新規作成</title>
+<meta charset="UTF-8">
 <style>
-body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:40px;background:#f5f5f5;text-align:center}
-h1{margin:0 0 20px}
-input,button{font-size:16px;padding:10px;border-radius:6px;border:1px solid #ccc}
-button{border:none;background:#1976d2;color:#fff;cursor:pointer;margin-left:10px}
+  body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:40px;background:#f5f5f5;text-align:center}
+  h1{margin:0 0 20px}
+  input,button{font-size:16px;padding:10px;border-radius:6px;border:1px solid #ccc}
+  button{border:none;background:#1976d2;color:#fff;cursor:pointer;margin-left:10px}
 </style>
+
+<!-- ★★★ ここがバックエンドとの橋渡し ★★★ -->
+<script>
+  /* あなたの GAS ウェブアプリ URL を貼る */
+  const ENDPOINT = 'https://script.google.com/macros/s/AKfycbw3EejJAz3XZoAdmuYshu5d44v--eZV5h0Eh8a71c6ovXK8bn0AwX_nbkV0vs-zfIY/exec';
+
+  /* POST 用ヘルパー関数 */
+  async function apiPost(body){
+    const r = await fetch(ENDPOINT, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(body)
+    });
+    return r.json();
+  }
+</script>
 </head>
+
 <body>
 <h1>新しい日程調整を作成</h1>
 
-<!-- ★ イベント名入力を追加 -->
+<!-- イベント名入力 -->
 <input type="text" id="evtName" placeholder="イベント名を入力">
 <button id="createBtn">日程調整をする</button>
 
-<script>  
-document.getElementById('createBtn').onclick = () => {
+<script>
+/* クリックでイベント新規作成 → GAS に登録 */
+document.getElementById('createBtn').onclick = async () => {
   const name = document.getElementById('evtName').value.trim();
-  if(!name){ alert('イベント名を入力してください'); return; }
+  if(!name){
+    alert('イベント名を入力してください');
+    return;
+  }
 
+  /* 一意のイベントIDを生成 */
   const id = 'e' + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
-  /* 保存データに eventName を追加 */
-  localStorage.setItem('event_'+id, JSON.stringify({
-    id,
-    eventName: name,
-    slots: [],
-    participants: [],
-    matches: []
-  }));
-  location.href = `organizer.html?event=${id}&tab=setup`;
+
+  /* 必要最低限の情報を GAS へ送信 */
+  const res = await apiPost({
+    mode   : 'createEvent',
+    eventId: id,
+    title  : name,
+    dates  : []            // 日程候補は後で追加する想定
+  });
+
+  if(res.status === 'success'){
+    /* 主催者画面へ遷移（イベントIDをクエリに付与） */
+    location.href = `organizer.html?event=${id}&tab=setup`;
+  }else{
+    alert('サーバーエラー：イベントを作成できませんでした');
+    console.error(res);
+  }
 };
 </script>
 </body>
