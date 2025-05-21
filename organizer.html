@@ -31,7 +31,7 @@ button.del:hover{color:#d32f2f}
 
 <!-- ▼ GAS との通信ヘルパー（3 行だけ直す） -->
 <script>
-  const ENDPOINT = 'YOUR_GAS_URL_HERE';   // ★ ここを書き換える
+  const ENDPOINT = 'https://script.google.com/macros/s/AKfycbxFvnUFdjhqrsLWccf5LMXILSX6BiaLJopmX5WSqpqfAwGvJ8qQaWz_0XTak5cLP0XW/exec';   // ★ ここを書き換える
 
   async function apiPost(body){
     const r = await fetch(ENDPOINT,{
