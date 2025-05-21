@@ -59,7 +59,22 @@ button.del:hover{color:#d32f2f}
 </div>
 <div id="tabDesc" style="margin:10px 0;font-size:13px;color:#333;"></div>
 
-<!-- Ⅰ 候補設定 -->
+<!-- Ⅰ 参加状況 -->
+<div id="status" class="section hidden">
+  <div id="infoBox" style="margin-bottom:12px;font-size:13px;line-height:1.6;"></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;">
+    <h3 style="margin:0">参加状況</h3>
+    <button id="refreshBtn" class="secondary">🔄 更新</button>
+  </div>
+  <div id="listTab"></div>
+</div>
+
+<!-- Ⅱ 調整結果 -->
+<div id="result" class="section hidden">
+  <div id="matchWrap"></div>
+</div>
+  
+<!-- Ⅲ 候補設定 -->
 <div id="setup" class="section">
   <div>
     <label>日付を選択：<input type="date" id="datePick"></label>
@@ -72,21 +87,6 @@ button.del:hover{color:#d32f2f}
   </div>
   <button id="sendBtn" class="primary" disabled>日程を送信</button>
   <p id="shareInfo" class="hidden"></p>
-</div>
-
-<!-- Ⅱ 参加状況 -->
-<div id="status" class="section hidden">
-  <div id="infoBox" style="margin-bottom:12px;font-size:13px;line-height:1.6;"></div>
-  <div style="display:flex;justify-content:space-between;align-items:center;">
-    <h3 style="margin:0">参加状況</h3>
-    <button id="refreshBtn" class="secondary">🔄 更新</button>
-  </div>
-  <div id="listTab"></div>
-</div>
-
-<!-- Ⅲ 調整結果 -->
-<div id="result" class="section hidden">
-  <div id="matchWrap"></div>
 </div>
 
 <script>
