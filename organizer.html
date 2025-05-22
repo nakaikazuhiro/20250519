@@ -55,7 +55,7 @@ button.del:hover{color:#d32f2f}
 <div class="section">
   <button class="tabbtn active" data-tab="status">参加状況</button>
   <button class="tabbtn" data-tab="result">調整結果</button>
-  <button class="tabbtn" data-tab="setup">日程の追加</button>
+  <button class="tabbtn" data-tab="setup">候補日程の追加</button>
 </div>
 <div id="tabDesc" style="margin:10px 0;font-size:13px;color:#333;"></div>
 
@@ -82,7 +82,7 @@ button.del:hover{color:#d32f2f}
   </div>
   <div id="dateBtns" style="margin:10px 0"></div>
   <div id="timeWrap">
-    <h3 id="timeTitle">タイムスロット（8:00-19:00）</h3>
+    <h3 id="timeTitle">タイムスロット（9:00-18:00）</h3>
     <div id="timeGrid" class="times"></div>
   </div>
   <button id="sendBtn" class="primary" disabled>日程を送信</button>
@@ -137,7 +137,7 @@ function initTabs(){
 }
 
 /* === 候補設定 === */
-const times = (()=>{const a=[];for(let h=8;h<=19;h++){['00','30'].forEach(m=>{if(!(h===19&&m==='30'))a.push(`${String(h).padStart(2,'0')}:${m}`);});}return a;})();
+const times = (()=>{const a=[];for(let h=9;h<=18;h++){['00','30'].forEach(m=>{if(!(h===18&&m==='30'))a.push(`${String(h).padStart(2,'0')}:${m}`);});}return a;})();
 const dateList = Object.fromEntries(data.slots.map(s=>{const [d,t]=s.split(' ');return [d,0];})); // 既存日付だけ鍵を用意
 const dateBtnsDiv = document.getElementById('dateBtns');
 const grid        = document.getElementById('timeGrid');
