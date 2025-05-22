@@ -56,7 +56,7 @@ document.getElementById('createBtn').onclick = async () => {
 
   if(res.status === 'success'){
     /* 主催者画面へ遷移（イベントIDをクエリに付与） */
-    location.href = `organizer.html?event=${id}&tab=setup`;
+    location.href = `organizer.html?event=${id}&tab=status`;
   }else{
     alert('サーバーエラー：イベントを作成できませんでした');
     console.error(res);
