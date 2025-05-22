@@ -62,7 +62,7 @@ let eventId = qs.get('event') || '';
 /* ===== 1. イベントを読み込む ===== */
 document.getElementById('loadBtn').onclick = async ()=>{
   eventId = document.getElementById('eventInput').value.trim();
-  if(!eventId){ alert('イベントIDを入力'); return; }
+  if(!eventId){ alert('少々お待ちください。'); return; }
   await loadEvent();
 };
 
