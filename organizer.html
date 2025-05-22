@@ -54,7 +54,7 @@ button.del:hover{color:#d32f2f}
 <div id="tabDesc" style="margin:10px 0;font-size:13px;color:#333;"></div>
 
 <!-- Ⅰ 参加状況 -->
-<div id="status" class="section hidden">
+<div id="status" class="section">
   <div id="infoBox" style="margin-bottom:12px;font-size:13px;line-height:1.6;"></div>
   <div style="display:flex;justify-content:space-between;align-items:center;">
     <h3 style="margin:0">参加状況</h3>
@@ -68,7 +68,7 @@ button.del:hover{color:#d32f2f}
 <div id="result" class="section hidden"><div id="matchWrap"></div></div>
 
 <!-- Ⅲ 日程追加 -->
-<div id="setup" class="section">
+<div id="setup" class="section hidden">
   <div>
     <label>日付を選択：<input type="date" id="datePick"></label>
     <button class="secondary" id="addDateBtn">日付を追加</button>
@@ -118,7 +118,7 @@ function initTabs(){
       document.querySelectorAll('.tabbtn').forEach(b=>b.classList.remove('active'));
       btn.classList.add('active');
       const t=btn.dataset.tab;
-      const desc={setup:'候補日程を追加して送信',status:'参加者の可否とコメント',result:'マッチした日時一覧'};
+      const desc={status:'参加者の可否とコメント',result:'マッチした日時一覧',setup:'候補日程を追加して送信'};
       document.getElementById('tabDesc').textContent=desc[t]||'';
       ['result','status','setup'].forEach(id=>document.getElementById(id).classList.toggle('hidden',id!==t));
       if(t==='status') renderStatus();
