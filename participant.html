@@ -19,10 +19,13 @@ th,td{border:1px solid #ccc;padding:6px;text-align:center}
 .timeCell{background:#e3f2fd}
 .disabledCell{background:#f5f5f5;color:#aaa}
 
+/* === ★★ 追加・更新：列幅を揃えるためのクラス === */
+.choiceCell{min-width:105px;}   /* 候補・非候補どちらにも同じ最小幅 */
+
 /* ===== 可否ボタン横並び ===== */
-.btnGrp{display:inline-flex}
-.btnGrp button{margin:0;padding:4px 8px;border:1px solid #ccc;border-radius:0;line-height:1}
-.btnGrp button+button{border-left:none}                  /* 隙間なし */
+.btnGrp{display:flex;width:100%}                /* ★★ 幅いっぱいに配置 */
+.btnGrp button{flex:1 0 0;margin:0;padding:4px 0;border:1px solid #ccc;border-radius:0;line-height:1}
+.btnGrp button+button{border-left:none}
 .btnGrp button.selected{background:#1976d2;color:#fff}
 
 /* ===== レイアウト調整 ===== */
@@ -31,7 +34,7 @@ th,td{border:1px solid #ccc;padding:6px;text-align:center}
 
 <!-- ★ GAS 通信ヘルパー -->
 <script>
-  const ENDPOINT = 'https://script.google.com/macros/s/AKfycbxFvnUFdjhqrsLWccf5LMXILSX6BiaLJopmX5WSqpqfAwGvJ8qQaWz_0XTak5cLP0XW/exec';  // ← 要変更
+  const ENDPOINT = 'https://script.google.com/macros/s/XXXXXXXXXXXXXXXXXXXXXXXXXXX/exec';  // ← 要変更
 
   async function apiPost(body){
     const r = await fetch(ENDPOINT,{ method:'POST', body:JSON.stringify(body) });
@@ -76,10 +79,10 @@ const marks = ['〇','△','×'];
 const fixedTimes = [
   '09:00','09:30','11:00','11:30','12:00','12:30',
   '14:00','14:30','15:00','15:30','17:00','17:30'
-];                                                     // 要望① 固定時間
+];
 const qs = new URLSearchParams(location.search);
 let eventId = qs.get('event') || '';
-let availability = {};                                 // { slotStr: '〇' | '△' | '×' }
+let availability = {};
 
 /* ===== 1. イベント読み込み ===== */
 document.getElementById('loadBtn').onclick = async ()=>{
@@ -92,11 +95,10 @@ async function loadEvent(){
   const ev = await apiGet('eventId='+eventId);
   if(ev.status==='not found'){ alert('イベントが存在しません'); return; }
 
-  /* 画面ヘッダー・説明書き */
   document.getElementById('title').textContent = `「${ev.title}」への参加入力`;
   document.getElementById('info').textContent =
     'ご都合を選択いただき、下部の【回答を送信】をクリックしてください（送信まで数秒かかります）。' +
-    'アイコン説明　〇：出席可　△：出席未定　×：出席不可';
+    '　アイコン説明　〇：出席可　△：出席未定　×：出席不可';
 
   document.getElementById('selectorWrap').classList.add('hidden');
   document.getElementById('mainWrap').classList.remove('hidden');
@@ -121,7 +123,6 @@ function buildTable(slots){
   });
 
   Object.keys(grouped).sort().forEach(dateStr=>{
-    // 日付見出しを「YYYY年M月D日」に変換
     const [y,m,d] = dateStr.split('-').map(Number);
     const jpDate = `${y}年${m}月${d}日`;
     wrap.insertAdjacentHTML('beforeend', `<h3>${jpDate}</h3>`);
@@ -133,22 +134,23 @@ function buildTable(slots){
     timeRow.insertAdjacentHTML  ('beforeend','<th class="timeCell">時間</th>');
     choiceRow.insertAdjacentHTML('beforeend','<th>可否</th>');
 
-    // 当日の候補を高速検索できるように Set 化
     const candidateSet = new Set(grouped[dateStr]);
 
     fixedTimes.forEach(t=>{
       const slot = `${dateStr} ${t}`;
 
-      /* ---- 時間セル ---- */
+      /* 時間セル */
       const tdTime = document.createElement('td');
-      tdTime.className = 'timeCell';
+      tdTime.className = 'timeCell choiceCell';          /* ★★ 幅を揃える */
       tdTime.textContent = toRange(t);
       timeRow.appendChild(tdTime);
 
-      /* ---- 可否セル ---- */
+      /* 可否セル */
       if(candidateSet.has(slot)){
         const td = document.createElement('td');
+        td.className = 'choiceCell';                     /* ★★ 幅を揃える */
         td.dataset.slot = slot;
+
         const btnGrp = document.createElement('div');
         btnGrp.className = 'btnGrp';
 
@@ -163,16 +165,15 @@ function buildTable(slots){
           };
           btnGrp.appendChild(btn);
         });
+
         td.appendChild(btnGrp);
         choiceRow.appendChild(td);
 
-        // 初期値を "〇" に設定
-        availability[slot] = '〇';
+        availability[slot] = '〇';                       // 初期値
       }else{
-        // 候補外はグレー表示
         choiceRow.insertAdjacentHTML(
           'beforeend',
-          '<td class="disabledCell">—</td>'
+          '<td class="disabledCell choiceCell">—</td>'   /* ★★ 幅を揃える */
         );
       }
     });
