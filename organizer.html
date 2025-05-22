@@ -229,7 +229,7 @@ function renderStatus(){
     const h3=document.createElement('h3');h3.textContent=date;wrap.appendChild(h3);
     const tbl=document.createElement('table');
     const thead=document.createElement('tr');
-    thead.innerHTML = '<th>参加者 / 時間</th>' + FIXED_TIMES.map(t=>`<th>${t}</th>`).join('');
+    thead.innerHTML = '<th>参加者 / 開始時間</th>' + FIXED_TIMES.map(t=>`<th>${t}</th>`).join('');
     tbl.appendChild(thead);
 
     const tbody=document.createElement('tbody');
@@ -250,19 +250,6 @@ function renderStatus(){
       });
       tbody.appendChild(tr);
     });
-
-    // 合計点行
-    const sumTr=document.createElement('tr');
-    sumTr.innerHTML = '<td>合計点</td>' + FIXED_TIMES.map(t=>{
-      if(!timesSet.has(t)) return '<td class="gray"></td>';
-      const key=`${date} ${t}`;
-      const total = data.participants.reduce((acc,p)=>acc+score(p.avail?.[key]),0);
-      return `<td>${total}</td>`;
-    }).join('');
-    tbody.appendChild(sumTr);
-
-    tbl.appendChild(tbody);
-    wrap.appendChild(tbl);
 
     // 並べ替え可能
     Sortable.create(tbody,{animation:150,onEnd:()=>{
