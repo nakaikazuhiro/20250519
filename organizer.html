@@ -251,6 +251,19 @@ function renderStatus(){
       tbody.appendChild(tr);
     });
 
+　　  // 合計点行
+    const sumTr=document.createElement('tr');
+    sumTr.innerHTML = '<td>合計点</td>' + FIXED_TIMES.map(t=>{
+      if(!timesSet.has(t)) return '<td class="gray"></td>';
+      const key=`${date} ${t}`;
+      const total = data.participants.reduce((acc,p)=>acc+score(p.avail?.[key]),0);
+      return `<td>${total}</td>`;
+    }).join('');
+    tbody.appendChild(sumTr);
+    tbl.appendChild(tbody);
+    wrap.appendChild(tbl);
+    
+    
     // 並べ替え可能
     Sortable.create(tbody,{animation:150,onEnd:()=>{
       const order=[...tbody.querySelectorAll('tr')].map(r=>r.dataset.name);
