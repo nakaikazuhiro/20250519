@@ -131,7 +131,7 @@ function initTabs(){
 }
 
 /********* 候補日程追加（従来ロジック） *********/
-const fullTimes=(()=>{const a=[];for(let h=9;h<=18;h++){['00','30'].forEach(m=>{if(!(h===18&&m==='30'))a.push(`${String(h).padStart(2,'0')}:${m}`);});}return a;})();
+const fullTimes=(()=>{const a=[];for(let h=9;h<=17.5;h++){['00','30'].forEach(m=>{if(!(h===17.5&&m==='30'))a.push(`${String(h).padStart(2,'0')}:${m}`);});}return a;})();
 const dateList={};
 const dateBtnsDiv=document.getElementById('dateBtns');
 const grid=document.getElementById('timeGrid');
