@@ -5,26 +5,34 @@
 <title>参加者画面</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
+/* ===== 共通レイアウト ===== */
 body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:20px;background:#fafafa}
-h2{margin:0 0 10px}
-h3{margin:16px 0 6px}
-button{padding:6px 14px;margin:4px;border:none;border-radius:4px;font-size:14px;cursor:pointer}
-.primary{background:#1976d2;color:#fff}
-td.click{cursor:pointer}
-table{border-collapse:collapse;width:100%;font-size:12px;margin-bottom:12px}
-th,td{border:1px solid #ccc;padding:4px;text-align:center}
+h2{margin:0 0 14px}
+h3{margin:20px 0 8px;font-size:15px}
+button{padding:6px 14px;margin:4px;border:1px solid #ccc;border-radius:4px;font-size:14px;cursor:pointer;background:#fff}
+.primary{background:#1976d2;color:#fff;border:none}
+table{border-collapse:collapse;width:100%;font-size:13px;margin-bottom:18px}
+th,td{border:1px solid #ccc;padding:6px;text-align:center}
 .hidden{display:none}
+
+/* ===== 時間列（横方向）のカラー ===== */
+.timeCell{background:#e3f2fd}
+/* ===== ボタン選択状態 ===== */
+.btnGrp button.selected{background:#1976d2;color:#fff;border:none}
+
+/* ===== レイアウト調整 ===== */
+#tblWrap{overflow-x:auto}
 </style>
 
 <!-- ★ GAS 通信ヘルパー -->
 <script>
-  const ENDPOINT = 'https://script.google.com/macros/s/AKfycbxFvnUFdjhqrsLWccf5LMXILSX6BiaLJopmX5WSqpqfAwGvJ8qQaWz_0XTak5cLP0XW/exec';         // ← ここを書き換え
+  const ENDPOINT = 'https://script.google.com/macros/s/AKfycbxFvnUFdjhqrsLWccf5LMXILSX6BiaLJopmX5WSqpqfAwGvJ8qQaWz_0XTak5cLP0XW/exec';   // ← 要変更
 
-  async function apiPost(body){                 // POST（ヘッダーなし = text/plain）
+  async function apiPost(body){
     const r = await fetch(ENDPOINT,{ method:'POST', body:JSON.stringify(body) });
     return r.json();
   }
-  async function apiGet(query){                 // GET
+  async function apiGet(query){
     const r = await fetch(`${ENDPOINT}?${query}`);
     return r.json();
   }
@@ -34,34 +42,40 @@ th,td{border:1px solid #ccc;padding:4px;text-align:center}
 <body>
 <h2 id="title">画面が切り替わるまで数秒お待ちください</h2>
 
- <!-- イベントID入力（パラメータが無いとき） -->
- <div id="selectorWrap">
-  <label> <input type="text" id="eventInput"></label>
-  <button id="loadBtn" class="primary">🔄</button>
-  </div>
+<!-- イベントID入力（URL パラメータが無い場合） -->
+<div id="selectorWrap">
+  <label>イベントID：<input type="text" id="eventInput"></label>
+  <button id="loadBtn" class="primary">読み込み</button>
+</div>
 
-<!-- 参加入力UI -->
-<div id="mainWrap" class="hidden"> <p id="info"></p>
+<!-- 参加入力 UI -->
+<div id="mainWrap" class="hidden">
+  <p id="info"></p>
+
   <div><label>お名前：<input type="text" id="pName"></label></div>
-  <div style="margin-top:8px;">
+
+  <div style="margin-top:10px;">
     <label>備考（任意）：<br>
       <textarea id="noteInput" rows="3" cols="40" placeholder="お伝えしたいことがあればご記入ください"></textarea>
     </label>
   </div>
-  <div id="tblWrap" style="margin-top:10px"></div>
+
+  <div id="tblWrap" style="margin-top:14px"></div>
+
   <button id="submitBtn" class="primary">回答を送信</button>
 </div>
 
 <script>
-/* ===== 共通 ===== */
+/* ===== 定数・変数 ===== */
 const marks = ['〇','△','×'];
-const qs    = new URLSearchParams(location.search);
+const qs = new URLSearchParams(location.search);
 let eventId = qs.get('event') || '';
+let availability = {};   // { slotStr: '〇' | '△' | '×' }
 
-/* ===== 1. イベントを読み込む ===== */
+/* ===== 1. イベント読み込み ===== */
 document.getElementById('loadBtn').onclick = async ()=>{
   eventId = document.getElementById('eventInput').value.trim();
-  if(!eventId){ alert('少々お待ちください。'); return; }
+  if(!eventId){ alert('イベントIDを入力してください'); return; }
   await loadEvent();
 };
 
@@ -69,69 +83,124 @@ async function loadEvent(){
   const ev = await apiGet('eventId='+eventId);
   if(ev.status==='not found'){ alert('イベントが存在しません'); return; }
 
-  /* タイトル・基本情報 */
+  /* 画面ヘッダー・説明書き */
   document.getElementById('title').textContent = `「${ev.title}」への参加入力`;
-  document.getElementById('info').textContent  = `イベントID: ${eventId}`;
+  document.getElementById('info').textContent =
+    'ご都合を選択いただき、下部の【回答を送信】をクリックしてください（送信まで数秒かかります）。' +
+    '　アイコン説明　〇：出席可　△：出席未定　×：出席不可';
+
   document.getElementById('selectorWrap').classList.add('hidden');
   document.getElementById('mainWrap').classList.remove('hidden');
 
-  buildTable(ev.dates||[]);
+  buildTable(ev.dates || []);
 }
 
-/* ===== 2. テーブル生成 ===== */
+/* ===== 2. テーブル生成（横方向に時間を並べる） ===== */
 function buildTable(slots){
-  const wrap = document.getElementById('tblWrap'); wrap.innerHTML='';
-  if(slots.length===0){ wrap.textContent='候補日時が設定されていません'; return; }
+  const wrap = document.getElementById('tblWrap');
+  wrap.innerHTML = '';
+  if(slots.length === 0){
+    wrap.textContent = '候補日時が設定されていません';
+    return;
+  }
 
   /* YYYY-MM-DD ごとにグループ化 */
-  const grouped={};
+  const grouped = {};
   slots.forEach(s=>{
-    const [d]=s.split(' ');
-    (grouped[d]??=[]).push(s);
+    const [d] = s.split(' ');
+    (grouped[d] ??= []).push(s);
   });
 
-  Object.keys(grouped).sort().forEach(date=>{
-    wrap.insertAdjacentHTML('beforeend', `<h3>${date}</h3>`);
-    const tbl=document.createElement('table');
-    tbl.innerHTML='<tr><th>時間</th><th>可否</th></tr>';
-    grouped[date].forEach(slot=>{
-      const tr=document.createElement('tr');
-      tr.insertAdjacentHTML('beforeend', `<td>${slot.split(' ')[1]}</td>`);
-      const td=document.createElement('td');
-      td.className='click'; td.dataset.slot=slot; td.textContent='〇';
-      td.onclick=()=>{ td.textContent = marks[(marks.indexOf(td.textContent)+1)%marks.length]; };
-      tr.appendChild(td); tbl.appendChild(tr);
+  Object.keys(grouped).sort().forEach(dateStr=>{
+    // 見出しの日付を「YYYY年M月D日」に整形
+    const [y,m,d] = dateStr.split('-').map(Number);
+    const jpDate = `${y}年${m}月${d}日`;
+
+    wrap.insertAdjacentHTML('beforeend', `<h3>${jpDate}</h3>`);
+
+    const tbl = document.createElement('table');
+    const timeRow = document.createElement('tr');
+    timeRow.insertAdjacentHTML('beforeend', '<th class="timeCell">時間</th>');
+
+    const choiceRow = document.createElement('tr');
+    choiceRow.insertAdjacentHTML('beforeend', '<th>可否</th>');
+
+    grouped[dateStr].sort().forEach(slot=>{
+      const [, timeStr] = slot.split(' ');               // 例 "09:00"
+      const rangeText  = toRange(timeStr);               // 例 "9:00-9:30"
+      timeRow.insertAdjacentHTML('beforeend',
+        `<td class="timeCell">${rangeText}</td>`);
+
+      // ==== 可否ボタン ====
+      const td = document.createElement('td');
+      td.dataset.slot = slot;
+
+      const btnGrp = document.createElement('div');
+      btnGrp.className = 'btnGrp';
+
+      marks.forEach(mark=>{
+        const btn = document.createElement('button');
+        btn.textContent = mark;
+        if(mark === '〇'){ btn.classList.add('selected'); }
+        btn.onclick = e=>{
+          // 選択状態を更新
+          [...btnGrp.children].forEach(b=>b.classList.remove('selected'));
+          btn.classList.add('selected');
+          availability[slot] = mark;
+        };
+        btnGrp.appendChild(btn);
+      });
+
+      td.appendChild(btnGrp);
+      choiceRow.appendChild(td);
+
+      // 初期値を "〇" に設定
+      availability[slot] = '〇';
     });
+
+    tbl.appendChild(timeRow);
+    tbl.appendChild(choiceRow);
     wrap.appendChild(tbl);
   });
+}
+
+/* ===== 時間表示を "H:MM-HH:MM" 形式に変換 ===== */
+function toRange(startStr){
+  const [h,m] = startStr.split(':').map(Number);
+  const startMinutes = h*60 + m;
+  const endMinutes = startMinutes + 30;           // 30 分枠想定
+  const eh = Math.floor(endMinutes / 60);
+  const em = endMinutes % 60;
+  const fmt = n => String(n).padStart(2,'0');
+  // 先頭の 0 は省略（例 09 → 9）
+  return `${h}:${fmt(m)}-${eh}:${fmt(em)}`;
 }
 
 /* ===== 3. 送信 ===== */
 document.getElementById('submitBtn').onclick = async ()=>{
   const name = document.getElementById('pName').value.trim();
-  if(!name){ alert('名前を入力'); return; }
+  if(!name){ alert('名前を入力してください'); return; }
 
   const note = document.getElementById('noteInput').value.trim();
-  const avail={};
-  document.querySelectorAll('td.click').forEach(td=>{
-    avail[td.dataset.slot]=td.textContent;
-  });
 
   const res = await apiPost({
     mode   : 'answer',
     eventId: eventId,
     name   : name,
-    choices: avail,
+    choices: availability,
     note   : note
   });
-  if(res.status==='success'){
+
+  if(res.status === 'success'){
     alert('送信しました。ご協力ありがとうございました。画面を閉じていただいて大丈夫です。');
     location.reload();
-  }else alert('送信に失敗しました');
+  }else{
+    alert('送信に失敗しました');
+  }
 };
 
-/* ===== 4. URLパラメータがあればすぐロード ===== */
-if(eventId) loadEvent();
+/* ===== 4. URL パラメータに event= があれば自動ロード ===== */
+if(eventId){ loadEvent(); }
 </script>
 </body>
 </html>
