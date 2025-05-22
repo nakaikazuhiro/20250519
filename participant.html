@@ -34,7 +34,7 @@ th,td{border:1px solid #ccc;padding:6px;text-align:center}
 
 <!-- ★ GAS 通信ヘルパー -->
 <script>
-  const ENDPOINT = 'https://script.google.com/macros/s/XXXXXXXXXXXXXXXXXXXXXXXXXXX/exec';  // ← 要変更
+  const ENDPOINT = 'https://script.google.com/macros/s/AKfycbxFvnUFdjhqrsLWccf5LMXILSX6BiaLJopmX5WSqpqfAwGvJ8qQaWz_0XTak5cLP0XW/exec';  // ← 要変更
 
   async function apiPost(body){
     const r = await fetch(ENDPOINT,{ method:'POST', body:JSON.stringify(body) });
