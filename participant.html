@@ -15,10 +15,15 @@ table{border-collapse:collapse;width:100%;font-size:13px;margin-bottom:18px}
 th,td{border:1px solid #ccc;padding:6px;text-align:center}
 .hidden{display:none}
 
-/* ===== 時間列（横方向）のカラー ===== */
+/* ===== セルのカラー ===== */
 .timeCell{background:#e3f2fd}
-/* ===== ボタン選択状態 ===== */
-.btnGrp button.selected{background:#1976d2;color:#fff;border:none}
+.disabledCell{background:#f5f5f5;color:#aaa}
+
+/* ===== 可否ボタン横並び ===== */
+.btnGrp{display:inline-flex}
+.btnGrp button{margin:0;padding:4px 8px;border:1px solid #ccc;border-radius:0;line-height:1}
+.btnGrp button+button{border-left:none}                  /* 隙間なし */
+.btnGrp button.selected{background:#1976d2;color:#fff}
 
 /* ===== レイアウト調整 ===== */
 #tblWrap{overflow-x:auto}
@@ -26,7 +31,7 @@ th,td{border:1px solid #ccc;padding:6px;text-align:center}
 
 <!-- ★ GAS 通信ヘルパー -->
 <script>
-  const ENDPOINT = 'https://script.google.com/macros/s/AKfycbxFvnUFdjhqrsLWccf5LMXILSX6BiaLJopmX5WSqpqfAwGvJ8qQaWz_0XTak5cLP0XW/exec';   // ← 要変更
+  const ENDPOINT = 'https://script.google.com/macros/s/AKfycbxFvnUFdjhqrsLWccf5LMXILSX6BiaLJopmX5WSqpqfAwGvJ8qQaWz_0XTak5cLP0XW/exec';  // ← 要変更
 
   async function apiPost(body){
     const r = await fetch(ENDPOINT,{ method:'POST', body:JSON.stringify(body) });
@@ -66,11 +71,15 @@ th,td{border:1px solid #ccc;padding:6px;text-align:center}
 </div>
 
 <script>
-/* ===== 定数・変数 ===== */
+/* ===== 定数 ===== */
 const marks = ['〇','△','×'];
+const fixedTimes = [
+  '09:00','09:30','11:00','11:30','12:00','12:30',
+  '14:00','14:30','15:00','15:30','17:00','17:30'
+];                                                     // 要望① 固定時間
 const qs = new URLSearchParams(location.search);
 let eventId = qs.get('event') || '';
-let availability = {};   // { slotStr: '〇' | '△' | '×' }
+let availability = {};                                 // { slotStr: '〇' | '△' | '×' }
 
 /* ===== 1. イベント読み込み ===== */
 document.getElementById('loadBtn').onclick = async ()=>{
@@ -95,7 +104,7 @@ async function loadEvent(){
   buildTable(ev.dates || []);
 }
 
-/* ===== 2. テーブル生成（横方向に時間を並べる） ===== */
+/* ===== 2. テーブル生成 ===== */
 function buildTable(slots){
   const wrap = document.getElementById('tblWrap');
   wrap.innerHTML = '';
@@ -112,50 +121,60 @@ function buildTable(slots){
   });
 
   Object.keys(grouped).sort().forEach(dateStr=>{
-    // 見出しの日付を「YYYY年M月D日」に整形
+    // 日付見出しを「YYYY年M月D日」に変換
     const [y,m,d] = dateStr.split('-').map(Number);
     const jpDate = `${y}年${m}月${d}日`;
-
     wrap.insertAdjacentHTML('beforeend', `<h3>${jpDate}</h3>`);
 
     const tbl = document.createElement('table');
-    const timeRow = document.createElement('tr');
-    timeRow.insertAdjacentHTML('beforeend', '<th class="timeCell">時間</th>');
-
+    const timeRow   = document.createElement('tr');
     const choiceRow = document.createElement('tr');
-    choiceRow.insertAdjacentHTML('beforeend', '<th>可否</th>');
 
-    grouped[dateStr].sort().forEach(slot=>{
-      const [, timeStr] = slot.split(' ');               // 例 "09:00"
-      const rangeText  = toRange(timeStr);               // 例 "9:00-9:30"
-      timeRow.insertAdjacentHTML('beforeend',
-        `<td class="timeCell">${rangeText}</td>`);
+    timeRow.insertAdjacentHTML  ('beforeend','<th class="timeCell">時間</th>');
+    choiceRow.insertAdjacentHTML('beforeend','<th>可否</th>');
 
-      // ==== 可否ボタン ====
-      const td = document.createElement('td');
-      td.dataset.slot = slot;
+    // 当日の候補を高速検索できるように Set 化
+    const candidateSet = new Set(grouped[dateStr]);
 
-      const btnGrp = document.createElement('div');
-      btnGrp.className = 'btnGrp';
+    fixedTimes.forEach(t=>{
+      const slot = `${dateStr} ${t}`;
 
-      marks.forEach(mark=>{
-        const btn = document.createElement('button');
-        btn.textContent = mark;
-        if(mark === '〇'){ btn.classList.add('selected'); }
-        btn.onclick = e=>{
-          // 選択状態を更新
-          [...btnGrp.children].forEach(b=>b.classList.remove('selected'));
-          btn.classList.add('selected');
-          availability[slot] = mark;
-        };
-        btnGrp.appendChild(btn);
-      });
+      /* ---- 時間セル ---- */
+      const tdTime = document.createElement('td');
+      tdTime.className = 'timeCell';
+      tdTime.textContent = toRange(t);
+      timeRow.appendChild(tdTime);
 
-      td.appendChild(btnGrp);
-      choiceRow.appendChild(td);
+      /* ---- 可否セル ---- */
+      if(candidateSet.has(slot)){
+        const td = document.createElement('td');
+        td.dataset.slot = slot;
+        const btnGrp = document.createElement('div');
+        btnGrp.className = 'btnGrp';
 
-      // 初期値を "〇" に設定
-      availability[slot] = '〇';
+        marks.forEach(mark=>{
+          const btn = document.createElement('button');
+          btn.textContent = mark;
+          if(mark === '〇'){ btn.classList.add('selected'); }
+          btn.onclick = ()=>{
+            [...btnGrp.children].forEach(b=>b.classList.remove('selected'));
+            btn.classList.add('selected');
+            availability[slot] = mark;
+          };
+          btnGrp.appendChild(btn);
+        });
+        td.appendChild(btnGrp);
+        choiceRow.appendChild(td);
+
+        // 初期値を "〇" に設定
+        availability[slot] = '〇';
+      }else{
+        // 候補外はグレー表示
+        choiceRow.insertAdjacentHTML(
+          'beforeend',
+          '<td class="disabledCell">—</td>'
+        );
+      }
     });
 
     tbl.appendChild(timeRow);
@@ -164,15 +183,14 @@ function buildTable(slots){
   });
 }
 
-/* ===== 時間表示を "H:MM-HH:MM" 形式に変換 ===== */
+/* ===== 時間文字列を "H:MM-HH:MM" に変換 ===== */
 function toRange(startStr){
   const [h,m] = startStr.split(':').map(Number);
   const startMinutes = h*60 + m;
-  const endMinutes = startMinutes + 30;           // 30 分枠想定
+  const endMinutes   = startMinutes + 30;
   const eh = Math.floor(endMinutes / 60);
   const em = endMinutes % 60;
   const fmt = n => String(n).padStart(2,'0');
-  // 先頭の 0 は省略（例 09 → 9）
   return `${h}:${fmt(m)}-${eh}:${fmt(em)}`;
 }
 
