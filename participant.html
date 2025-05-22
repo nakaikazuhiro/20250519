@@ -32,7 +32,7 @@ th,td{border:1px solid #ccc;padding:4px;text-align:center}
 </head>
 
 <body>
-<h2 id="title">参加可否の入力</h2>
+<h2 id="title">ご予定の入力</h2>
 
 <!-- イベントID入力（パラメータが無いとき） -->
 <div id="selectorWrap">
@@ -46,7 +46,7 @@ th,td{border:1px solid #ccc;padding:4px;text-align:center}
   <div><label>お名前：<input type="text" id="pName"></label></div>
   <div style="margin-top:8px;">
     <label>備考（任意）：<br>
-      <textarea id="noteInput" rows="3" cols="40" placeholder="伝えたいことがあれば記入してください"></textarea>
+      <textarea id="noteInput" rows="3" cols="40" placeholder="お伝えしたいことがあればご記入ください"></textarea>
     </label>
   </div>
   <div id="tblWrap" style="margin-top:10px"></div>
@@ -126,7 +126,7 @@ document.getElementById('submitBtn').onclick = async ()=>{
     note   : note
   });
   if(res.status==='success'){
-    alert('送信しました。ご協力ありがとうございました！');
+    alert('送信しました。ご協力ありがとうございました。画面を閉じていただいて大丈夫です。');
     location.reload();
   }else alert('送信に失敗しました');
 };
