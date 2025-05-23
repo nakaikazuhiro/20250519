@@ -36,9 +36,9 @@ button.del:hover{color:#d32f2f}
 
 <!-- ▼ GAS 通信ヘルパー -->
 <script>
-  const ENDPOINT = 'https://script.google.com/macros/s/AKfycbxFvnUFdjhqrsLWccf5LMXILSX6BiaLJopmX5WSqpqfAwGvJ8qQaWz_0XTak5cLP0XW/exec'; // ★要変更
-  async function apiPost(body){const r=await fetch(ENDPOINT,{method:'POST',body:JSON.stringify(body)});return r.json();}
-  async function apiGet(q){const r=await fetch(`${ENDPOINT}?${q}`);return r.json();}
+const ENDPOINT = 'https://script.google.com/macros/s/AKfycbxFvnUFdjhqrsLWccf5LMXILSX6BiaLJopmX5WSqpqfAwGvJ8qQaWz_0XTak5cLP0XW/exec';   // ★ 必要なら変更
+async function apiPost(body){const r=await fetch(ENDPOINT,{method:'POST',body:JSON.stringify(body)});return r.json();}
+async function apiGet(q){const r=await fetch(`${ENDPOINT}?${q}`);return r.json();}
 </script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 </head>
@@ -83,18 +83,12 @@ button.del:hover{color:#d32f2f}
 </div>
 
 <script>
-/********* 定数 & ユーティリティ *********/
-const FIXED_TIMES = ['09:00','09:30','11:00','11:30','12:00','12:30','14:00','14:30','15:00','15:30','17:00','17:30'];
-function formatRange(t){
-  const [h,m]=t.split(':').map(Number);
-  const start=`${h}:${m.toString().padStart(2,'0')}`;
-  const endDate=new Date(0,0,0,h,m+30);
-  const end=`${endDate.getHours()}:${endDate.getMinutes().toString().padStart(2,'0')}`;
-  return `${start} - ${end}`;
-}
+/* ===== ユーティリティ ===== */
+const FIXED_TIMES=['09:00','09:30','11:00','11:30','12:00','12:30','14:00','14:30','15:00','15:30','17:00','17:30'];
+function formatRange(t){const[h,m]=t.split(':').map(Number);const s=`${h}:${m.toString().padStart(2,'0')}`;const d=new Date(0,0,0,h,m+30);const e=`${d.getHours()}:${d.getMinutes().toString().padStart(2,'0')}`;return `${s} - ${e}`;}
 function safeMark(m){return m||'';}
 
-/********* 初期データ取得 *********/
+/* ===== 初期取得 ===== */
 const qs=new URLSearchParams(location.search);
 const eventId=qs.get('event');
 if(!eventId){alert('event パラメータがありません');history.back();}
@@ -103,156 +97,107 @@ let data={title:'',slots:[],participants:[]};
 (async()=>{
   const ev=await apiGet('eventId='+eventId);
   if(ev.status==='not found'){alert('イベントが存在しません');history.back();}
-  data.title=ev.title;
-  data.slots=ev.dates||[];
+  data.title=ev.title;data.slots=ev.dates||[];
   await refreshSummary();
   document.getElementById('title').textContent='開催者画面 – '+data.title;
-  initTabs();
-  renderDateBtns();
+  initTabs();renderDateBtns();
 })();
 
-/********* タブ切り替え *********/
+/* ===== タブ ===== */
 function initTabs(){
   document.querySelectorAll('.tabbtn').forEach(btn=>{
-    btn.onclick=()=>{
-      document.querySelectorAll('.tabbtn').forEach(b=>b.classList.remove('active'));
-      btn.classList.add('active');
+    btn.onclick=()=>{document.querySelectorAll('.tabbtn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
       const t=btn.dataset.tab;
       const desc={status:'参加者の可否とコメント',result:'マッチした日時一覧',setup:'候補日程を追加して送信'};
       document.getElementById('tabDesc').textContent=desc[t]||'';
-      ['result','status','setup'].forEach(id=>document.getElementById(id).classList.toggle('hidden',id!==t));
+      ['status','result','setup'].forEach(id=>document.getElementById(id).classList.toggle('hidden',id!==t));
       if(t==='status') renderStatus();
       if(t==='result') renderResult();
     };
   });
-  // 既定は status
-  const defaultTab=qs.get('tab')||'status';
-  document.querySelector(`.tabbtn[data-tab="${defaultTab}"]`).click();
+  (document.querySelector(`.tabbtn[data-tab="${qs.get('tab')||'status'}"]`)||document.querySelector('.tabbtn')).click();
 }
 
-/********* 候補日程追加（従来ロジック） *********/
+/* ===== 候補日程追加 ===== */
 const fullTimes=(()=>{const a=[];for(let h=9;h<=17.5;h++){['00','30'].forEach(m=>{if(!(h===17.5&&m==='30'))a.push(`${String(h).padStart(2,'0')}:${m}`);});}return a;})();
-const dateList={};
-const dateBtnsDiv=document.getElementById('dateBtns');
-const grid=document.getElementById('timeGrid');
+const dateList={};const dateBtnsDiv=document.getElementById('dateBtns');const grid=document.getElementById('timeGrid');
 
-document.getElementById('addDateBtn').onclick=()=>{
-  const d=document.getElementById('datePick').value;
-  if(!d) return;
-  dateList[d]??=new Set();
-  renderDateBtns(d);renderGrid(d);
-  document.getElementById('sendBtn').disabled=false;
-};
-function renderDateBtns(active){
-  dateBtnsDiv.innerHTML='';
-  Object.keys(dateList).sort().forEach(d=>{
-    const b=document.createElement('button');b.textContent=d;b.className='secondary';if(d===active) b.style.fontWeight='bold';
-    b.onclick=()=>renderGrid(d);dateBtnsDiv.appendChild(b);
-  });
-}
-function renderGrid(date){
-  grid.innerHTML='';
-  document.getElementById('timeTitle').textContent=date?`タイムスロット（${date}）`:'タイムスロット';
-  fullTimes.forEach(t=>{
-    const div=document.createElement('div');div.textContent=t;div.className='slot';
-    if(dateList[date]?.has(t)) div.classList.add('sel');
+document.getElementById('addDateBtn').onclick=()=>{const d=document.getElementById('datePick').value;if(!d)return;dateList[d]??=new Set();renderDateBtns(d);renderGrid(d);document.getElementById('sendBtn').disabled=false;};
+function renderDateBtns(active){dateBtnsDiv.innerHTML='';Object.keys(dateList).sort().forEach(d=>{const b=document.createElement('button');b.textContent=d;b.className='secondary';if(d===active)b.style.fontWeight='bold';b.onclick=()=>renderGrid(d);dateBtnsDiv.appendChild(b);});}
+function renderGrid(date){grid.innerHTML='';document.getElementById('timeTitle').textContent=date?`タイムスロット（${date}）`:'タイムスロット';
+  fullTimes.forEach(t=>{const div=document.createElement('div');div.textContent=t;div.className='slot';if(dateList[date]?.has(t))div.classList.add('sel');
     div.onclick=()=>{dateList[date]??=new Set();if(dateList[date].has(t)){dateList[date].delete(t);div.classList.remove('sel');}else{dateList[date].add(t);div.classList.add('sel');}};
-    grid.appendChild(div);
-  });
+    grid.appendChild(div);});
 }
 
-document.getElementById('sendBtn').onclick=async()=>{
-  data.slots=[];Object.entries(dateList).forEach(([d,set])=>set.forEach(t=>data.slots.push(`${d} ${t}`)));data.slots.sort();
+document.getElementById('sendBtn').onclick=async()=>{data.slots=[];Object.entries(dateList).forEach(([d,set])=>set.forEach(t=>data.slots.push(`${d} ${t}`)));data.slots.sort();
   const res=await apiPost({mode:'updateSlots',eventId,slots:data.slots});
-  if(res.status==='success'){
-    const url=location.origin+location.pathname.replace('organizer.html','participant.html')+`?event=${eventId}`;
+  if(res.status==='success'){const url=location.origin+location.pathname.replace('organizer.html','participant.html')+`?event=${eventId}`;
     document.getElementById('shareInfo').textContent='参加者用 URL: '+url;document.getElementById('shareInfo').classList.remove('hidden');
     alert('候補日時を保存しました。参加者に URL を共有してください。');
     document.querySelector('.tabbtn[data-tab="status"]').click();
   }else alert('保存に失敗しました');
 };
 
-/********* 参加状況 *********/
-document.getElementById('refreshBtn').onclick = async ()=>{
-  await refreshSummary();
-  renderStatus();
-};
+/* ===== 参加状況 ===== */
+document.getElementById('refreshBtn').onclick=async()=>{await refreshSummary();renderStatus();};
 
-async function refreshSummary(){
-  const r=await apiGet(`eventId=${eventId}&summary=1`);
-  if(r && r.participants) data.participants=r.participants;
-}
+async function refreshSummary(){const r=await apiGet(`eventId=${eventId}&summary=1&ts=${Date.now()}`);if(r&&r.participants)data.participants=r.participants;}
+
 function renderStatus(){
-  // URL Info
+  /* URL info */
   const orgUrl=location.origin+location.pathname+`?event=${eventId}&tab=status`;
   const parUrl=location.origin+location.pathname.replace('organizer.html','participant.html')+`?event=${eventId}`;
   document.getElementById('infoBox').innerHTML=`<strong>開催者URL:</strong> <a href="${orgUrl}" target="_blank">${orgUrl}</a><br><strong>参加者URL:</strong> <a href="${parUrl}" target="_blank">${parUrl}</a>`;
 
-  // 表
   const wrap=document.getElementById('listTab');wrap.innerHTML='';
   if(data.slots.length===0){wrap.textContent='候補がまだ設定されていません';return;}
   const grouped={};data.slots.forEach(s=>{const[d]=s.split(' ');(grouped[d]??=[]).push(s);});
+
   Object.keys(grouped).sort().forEach(date=>{
     const timesSet=new Set(grouped[date].map(s=>s.split(' ')[1]));
-    const h3=document.createElement('h3');h3.textContent=date;wrap.appendChild(h3);
-    const tbl=document.createElement('table');
-    const thead=document.createElement('tr');
-    thead.innerHTML='<th>参加者 / 時間</th>'+FIXED_TIMES.map(t=>`<th>${formatRange(t)}</th>`).join('');
-    tbl.appendChild(thead);
+    wrap.insertAdjacentHTML('beforeend',`<h3>${date}</h3>`);
+    const tbl=document.createElement('table');const thead=document.createElement('tr');
+    thead.innerHTML='<th>参加者 / 時間</th>'+FIXED_TIMES.map(t=>`<th>${formatRange(t)}</th>`).join('');tbl.appendChild(thead);
     const tbody=document.createElement('tbody');
+
     data.participants.forEach(p=>{
       const tr=document.createElement('tr');tr.dataset.name=p.name;
-      const nameTd=document.createElement('td');
+      const tdName=document.createElement('td');
       const del=document.createElement('button');del.textContent='🗑';del.className='del';del.onclick=()=>deleteParticipant(p.name);
-      nameTd.append(p.name,' ',del);nameTd.style.cursor='pointer';nameTd.onclick=()=>toggleHighlight(p.name);
-      tr.appendChild(nameTd);
-      FIXED_TIMES.forEach(t=>{
-        const td=document.createElement('td');if(!timesSet.has(t)) td.className='gray';
-        const key=`${date} ${t}`;td.textContent=timesSet.has(t)?safeMark(p.avail?.[key]):'';
-        tr.appendChild(td);
-      });
+      tdName.append(p.name,' ',del);tdName.style.cursor='pointer';tdName.onclick=()=>toggleHighlight(p.name);
+      tr.appendChild(tdName);
+      FIXED_TIMES.forEach(t=>{const td=document.createElement('td');if(!timesSet.has(t))td.className='gray';
+        const key=`${date} ${t}`;td.textContent=timesSet.has(t)?safeMark(p.avail?.[key]):'';tr.appendChild(td);});
       tbody.appendChild(tr);
     });
+
     tbl.appendChild(tbody);wrap.appendChild(tbl);
-    Sortable.create(tbody,{animation:150,onEnd:()=>{
-      const order=[...tbody.querySelectorAll('tr')].map(r=>r.dataset.name);
-      data.participants.sort((a,b)=>order.indexOf(a.name)-order.indexOf(b.name));renderResult();}});
+    Sortable.create(tbody,{animation:150,onEnd:()=>{const order=[...tbody.querySelectorAll('tr')].map(r=>r.dataset.name);data.participants.sort((a,b)=>order.indexOf(a.name)-order.indexOf(b.name));renderResult();}});
   });
 
-  // コメント一覧
-  const commentDiv=document.getElementById('commentWrap');commentDiv.innerHTML='';
+  /* コメント一覧 */
+  const cDiv=document.getElementById('commentWrap');cDiv.innerHTML='';
   const noted=data.participants.filter(p=>p.note&&p.note.trim());
-  if(noted.length){
-    commentDiv.insertAdjacentHTML('beforeend','<h3>コメント一覧</h3>');
-    const ul=document.createElement('ul');
-    noted.forEach(p=>ul.insertAdjacentHTML('beforeend',`<li><strong>${p.name}:</strong> ${p.note.replace(/\n/g,'<br>')}</li>`));
-    commentDiv.appendChild(ul);
-  }
+  if(noted.length){cDiv.insertAdjacentHTML('beforeend','<h3>コメント一覧</h3>');const ul=document.createElement('ul');
+    noted.forEach(p=>ul.insertAdjacentHTML('beforeend',`<li><strong>${p.name}:</strong> ${p.note.replace(/\\n/g,'<br>')}</li>`));cDiv.appendChild(ul);}
 }
-function toggleHighlight(name){
-  document.querySelectorAll(`tr[data-name="${name}"]`).forEach(r=>r.classList.toggle('hl'));
-}
+function toggleHighlight(name){document.querySelectorAll(`tr[data-name="${name}"]`).forEach(r=>r.classList.toggle('hl'));}
 
 async function deleteParticipant(name){
-  if(!confirm(`${name} さんの回答を削除しますか？`)) return;
-  const res = await apiPost({mode:'deleteAnswer',eventId,name});
-  if(res.status==='success'){
-    await refreshSummary();
-    renderStatus();
-    renderResult();
-  }else{
-    alert('削除に失敗しました');
-  }
+  if(!confirm(`${name} さんの回答を削除しますか？`))return;
+  const res=await apiPost({mode:'deleteAnswer',eventId,name});
+  if(res.status==='success'){await refreshSummary();renderStatus();renderResult();}
+  else alert('削除に失敗しました');
 }
-/********* 調整結果 *********/
+
+/* ===== 調整結果（今は参考） ===== */
 function renderResult(){
   const div=document.getElementById('matchWrap');div.innerHTML='';
   if(!data.participants.length){div.textContent='まだ回答がありません';return;}
-  const tally={};data.participants.forEach(p=>{if(!p.avail) return;Object.entries(p.avail).forEach(([slot,mark])=>{if(mark==='○')(tally[slot]=tally[slot]||[]).push(p.name);});});
-  Object.keys(tally).sort().forEach(slot=>{
-    const h3=document.createElement('h3');h3.textContent=slot;div.appendChild(h3);
-    const ul=document.createElement('ul');tally[slot].forEach(n=>ul.insertAdjacentHTML('beforeend',`<li>${n}</li>`));div.appendChild(ul);
-  });
+  const tally={};
+  data.participants.forEach(p=>{if(!p.avail)return;Object.entries(p.avail).forEach(([slot,mark])=>{if(mark==='○')(tally[slot]=tally[slot]||[]).push(p.name);});});
+  Object.keys(tally).sort().forEach(slot=>{div.insertAdjacentHTML('beforeend',`<h3>${slot}</h3>`);const ul=document.createElement('ul');tally[slot].forEach(n=>ul.insertAdjacentHTML('beforeend',`<li>${n}</li>`));div.appendChild(ul);});
 }
 </script>
 </body>
