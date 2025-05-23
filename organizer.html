@@ -24,6 +24,7 @@ button:disabled{background:#cfd8dc}
 /* ===== 参加状況テーブル ===== */
 table{border-collapse:collapse;width:100%;font-size:12px;table-layout:fixed}
 th,td{border:1px solid #ccc;padding:4px;text-align:center;min-width:68px}
+td.namecol, th.namecol { background:#e3f2fd; }  /* ← 淡い青 */
 .gray{background:#e0e0e0;color:#888}
 tr.hl td{background:#fff59d}
 button.del{background:none;border:none;color:#f44336;font-weight:bold;font-size:14px;cursor:pointer;padding:0 4px}
@@ -158,12 +159,12 @@ function renderStatus(){
     const timesSet=new Set(grouped[date].map(s=>s.split(' ')[1]));
     wrap.insertAdjacentHTML('beforeend',`<h3>${date}</h3>`);
     const tbl=document.createElement('table');const thead=document.createElement('tr');
-    thead.innerHTML='<th>参加者 / 時間</th>'+FIXED_TIMES.map(t=>`<th>${formatRange(t)}</th>`).join('');tbl.appendChild(thead);
+    thead.innerHTML='<th class="namecol">参加者 / 時間</th>'+FIXED_TIMES.map(t=>`<th>${formatRange(t)}</th>`).join('');tbl.appendChild(thead);
     const tbody=document.createElement('tbody');
 
     data.participants.forEach(p=>{
       const tr=document.createElement('tr');tr.dataset.name=p.name;
-      const tdName=document.createElement('td');
+      const tdName=document.createElement('td'); tdName.classList.add('namecol');  // ← クラス追加
       const del=document.createElement('button');del.textContent='🗑';del.className='del';del.onclick=()=>deleteParticipant(p.name);
       tdName.append(p.name,' ',del);tdName.style.cursor='pointer';tdName.onclick=()=>toggleHighlight(p.name);
       tr.appendChild(tdName);
