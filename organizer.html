@@ -173,10 +173,14 @@ document.getElementById('sendBtn').onclick=async()=>{
 };
 
 /********* 参加状況 *********/
-document.getElementById('refreshBtn').onclick=refreshSummary;
+document.getElementById('refreshBtn').onclick = async ()=>{
+  await refreshSummary();
+  renderStatus();
+};
+
 async function refreshSummary(){
   const r=await apiGet(`eventId=${eventId}&summary=1`);
-  if(r){data.participants=r.participants||[];}
+  if(r && r.participants) data.participants=r.participants;
 }
 function renderStatus(){
   // URL Info
@@ -225,9 +229,21 @@ function renderStatus(){
     commentDiv.appendChild(ul);
   }
 }
-function toggleHighlight(name){document.querySelectorAll(`tr[data-name="${name}"]`).forEach(r=>r.classList.toggle('hl'))}
-function deleteParticipant(name){if(!confirm(`${name} さんの回答を削除しますか？`)) return;data.participants=data.participants.filter(p=>p.name!==name);renderStatus();renderResult();}
+function toggleHighlight(name){
+  document.querySelectorAll(`tr[data-name="${name}"]`).forEach(r=>r.classList.toggle('hl'));
+}
 
+async function deleteParticipant(name){
+  if(!confirm(`${name} さんの回答を削除しますか？`)) return;
+  const res = await apiPost({mode:'deleteAnswer',eventId,name});
+  if(res.status==='success'){
+    await refreshSummary();
+    renderStatus();
+    renderResult();
+  }else{
+    alert('削除に失敗しました');
+  }
+}
 /********* 調整結果 *********/
 function renderResult(){
   const div=document.getElementById('matchWrap');div.innerHTML='';
